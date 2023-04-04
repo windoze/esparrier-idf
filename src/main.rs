@@ -66,12 +66,17 @@ fn main() -> Result<()> {
     //     hue = hue.wrapping_add(10);
     // }
 
-    let mut actor = UsbHidActuator::new(2560, 1440);
+    let width = u16::from_str_radix(env!("SCREEN_WIDTH"), 10).unwrap();
+    let height = u16::from_str_radix(env!("SCREEN_HEIGHT"), 10).unwrap();
+    let mut actor = UsbHidActuator::new(width, height);
 
     // Reconnect if disconnected
     loop {
         info!("Connecting to barrier...");
-        match barrier::start("192.168.2.59", 24800, "ESPARRIER", &mut actor) {
+        let server = env!("BARRIER_SERVER");
+        let port = u16::from_str_radix(env!("BARRIER_PORT"), 10).unwrap();
+        let name = env!("SCREEN_NAME");
+        match barrier::start(server, port, name, &mut actor) {
             Ok(_) => {
                 info!("Connection closed");
             }

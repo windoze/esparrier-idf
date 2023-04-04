@@ -213,10 +213,44 @@ static uint8_t key_report[6] = {0};
 //     }
 // }
 
+static uint8_t get_modifier() {
+    uint8_t modifier = 0;
+    for (int i = 0; i < 6; i++) {
+        if (key_report[i] == 0) {
+            continue;
+        }
+        if (key_report[i] == 0xE0) {
+            modifier |= KEYBOARD_MODIFIER_LEFTCTRL;
+        }
+        if (key_report[i] == 0xE1) {
+            modifier |= KEYBOARD_MODIFIER_LEFTSHIFT;
+        }
+        if (key_report[i] == 0xE2) {
+            modifier |= KEYBOARD_MODIFIER_LEFTALT;
+        }
+        if (key_report[i] == 0xE3) {
+            modifier |= KEYBOARD_MODIFIER_LEFTGUI;
+        }
+        if (key_report[i] == 0xE4) {
+            modifier |= KEYBOARD_MODIFIER_RIGHTCTRL;
+        }
+        if (key_report[i] == 0xE5) {
+            modifier |= KEYBOARD_MODIFIER_RIGHTSHIFT;
+        }
+        if (key_report[i] == 0xE6) {
+            modifier |= KEYBOARD_MODIFIER_RIGHTALT;
+        }
+        if (key_report[i] == 0xE7) {
+            modifier |= KEYBOARD_MODIFIER_RIGHTGUI;
+        }
+    }
+    return modifier;
+}
+
 void usb_util_key_down(uint8_t key, uint16_t button)
 {
-    ESP_LOGI(TAG, ">>>> Key down");
-    ESP_LOGI(TAG, "Key down: button: %i key: %i", button, key);
+    ESP_LOGD(TAG, ">>>> Key down");
+    ESP_LOGD(TAG, "Key down: button: %i key: %i", button, key);
     if (key == 0)
     {
         return;
@@ -228,7 +262,7 @@ void usb_util_key_down(uint8_t key, uint16_t button)
     }
     server_button_state[button] = key;
 
-    ESP_LOGI(TAG, "Got keydown for %i", key);
+    ESP_LOGD(TAG, "Got keydown for %i", key);
     for (int i = 0; i < 6; i++)
     {
         if (key_report[i] == 0)
@@ -240,21 +274,21 @@ void usb_util_key_down(uint8_t key, uint16_t button)
 
     for (int i = 0; i < 6; i++)
     {
-        ESP_LOGI(TAG, "Button %i = %i", i, key_report[i]);
+        ESP_LOGD(TAG, "Button %i = %i", i, key_report[i]);
     }
-    ESP_LOGI(TAG, "<<<< Key down");
+    ESP_LOGD(TAG, "<<<< Key down");
     if (!initialized)
     {
         return;
     }
-    tud_hid_keyboard_report(HID_PROTOCOL_KEYBOARD, 0, key_report);
+    tud_hid_keyboard_report(HID_PROTOCOL_KEYBOARD, get_modifier(), key_report);
 }
 
 void usb_util_key_up(uint16_t button)
 {
-    ESP_LOGI(TAG, ">>>> Key up");
+    ESP_LOGD(TAG, ">>>> Key up");
     uint8_t key = server_button_state[button];
-    ESP_LOGI(TAG, "Key up: button: %i", button);
+    ESP_LOGD(TAG, "Key up: button: %i", button);
     server_button_state[button] = 0;
     for (int i = 0; i < 6; i++)
     {
@@ -268,17 +302,19 @@ void usb_util_key_up(uint16_t button)
 done:
     for (int i = 0; i < 6; i++)
     {
-        ESP_LOGI(TAG, "Button %i = %i", i, key_report[i]);
+        ESP_LOGD(TAG, "Button %i = %i", i, key_report[i]);
     }
-    ESP_LOGI(TAG, "<<<< Key up");
-
-    static uint8_t empty_key_report[6] = {0};
+    ESP_LOGD(TAG, "<<<< Key up");
 
     if (!initialized)
     {
         return;
     }
-    tud_hid_keyboard_report(HID_PROTOCOL_KEYBOARD, 0, empty_key_report);
+
+    // static uint8_t empty_key_report[6] = {0};
+    // tud_hid_keyboard_report(HID_PROTOCOL_KEYBOARD, 0, empty_key_report);
+
+    tud_hid_keyboard_report(HID_PROTOCOL_KEYBOARD, get_modifier(), key_report);
 }
 
 void usb_util_init(void)

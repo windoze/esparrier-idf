@@ -1,9 +1,10 @@
 use std::collections::HashMap;
 
-use log::info;
+use log::{debug, info, warn};
 use smart_leds::RGB;
 
 use crate::{barrier::Actuator, utils::set_led, keycodes::synergy_to_hid};
+
 
 extern "C" {
     fn usb_util_init();
@@ -21,6 +22,8 @@ pub struct UsbHidActuator {
     pub x: u16,
     pub y: u16,
     pub options: HashMap<String, u32>,
+    pub v_scroll_scale: f32,
+    pub h_scroll_scale: f32,
 }
 
 impl UsbHidActuator {
@@ -32,6 +35,8 @@ impl UsbHidActuator {
             x: 0,
             y: 0,
             options: HashMap::new(),
+            v_scroll_scale: env!("V_SCROLL_SCALE").parse().unwrap_or(1.0),
+            h_scroll_scale: env!("H_SCROLL_SCALE").parse().unwrap_or(1.0),
         }
     }
 }
@@ -58,53 +63,51 @@ impl Actuator for UsbHidActuator {
     fn set_cursor_position(&mut self, x: u16, y: u16) {
         self.x = x;
         self.y = y;
-        info!("Set cursor position to {x} {y}");
+        debug!("Set cursor position to {x} {y}");
         unsafe { usb_util_move_to_pos(self.x, self.y) }
     }
 
     fn move_cursor(&mut self, x: i16, y: i16) {
         self.x = (self.x as i32 + x as i32) as u16;
         self.y = (self.y as i32 + y as i32) as u16;
-        info!("Move cursor by {x} {y}, now at {} {}", self.x, self.y);
+        debug!("Move cursor by {x} {y}, now at {} {}", self.x, self.y);
         unsafe { usb_util_move_to_pos(self.x, self.y) }
     }
 
     fn mouse_down(&mut self, button: i8) {
-        info!("Mouse down {button}");
+        debug!("Mouse down {button}");
         unsafe { usb_util_mouse_button(button as u8) }
     }
 
     fn mouse_up(&mut self, button: i8) {
-        info!("Mouse up {button}");
+        debug!("Mouse up {button}");
         unsafe { usb_util_mouse_button_up(button as u8) }
     }
 
     fn mouse_wheel(&mut self, x: i16, y: i16) {
-        info!("Mouse wheel {x} {y}");
-        unsafe { usb_util_mouse_wheel(x, y) }
+        debug!("Mouse wheel {x} {y}");
+        let x = (x as f32 * self.h_scroll_scale) as i16;
+        let y = (y as f32 * self.v_scroll_scale) as i16;
+        unsafe { usb_util_mouse_wheel(y, x) }
     }
 
     fn key_down(&mut self, key: u16, mask: u16, button: u16) {
-        info!("Key down {key} {mask} {button}");
+        debug!("Key down {key} {mask} {button}");
         let hid = synergy_to_hid(key);
         if hid == 0 {
-            info!("Keycode not found");
+            warn!("Keycode not found");
             return;
         }
-        info!("Keycode: {}", hid);
+        debug!("Keycode: {}", hid);
         unsafe { usb_util_key_down(hid, button) }
     }
 
     fn key_repeat(&mut self, key: u16, mask: u16, button: u16, count: u16) {
-        info!("Key repeat {key} {mask} {button} {count}");
+        debug!("Key repeat {key} {mask} {button} {count}");
         let hid = synergy_to_hid(key);
+        debug!("Keycode: {}", hid);
         if hid == 0 {
-            info!("Keycode not found");
-            return;
-        }
-        info!("Keycode: {}", hid);
-        if hid == 0 {
-            info!("Keycode not found");
+            warn!("Keycode not found");
             return;
         }
         for _ in 0..count {
@@ -113,15 +116,11 @@ impl Actuator for UsbHidActuator {
     }
 
     fn key_up(&mut self, key: u16, mask: u16, button: u16) {
-        info!("Key up {key} {mask} {button}");
+        debug!("Key up {key} {mask} {button}");
         let hid = synergy_to_hid(key);
+        debug!("Keycode: {}", hid);
         if hid == 0 {
-            info!("Keycode not found");
-            return;
-        }
-        info!("Keycode: {}", hid);
-        if hid == 0 {
-            info!("Keycode not found");
+            warn!("Keycode not found");
             return;
         }
         unsafe { usb_util_key_up(button) }

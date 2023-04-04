@@ -1,6 +1,7 @@
 # Rust often needs a bit of an extra main task stack size compared to C (the default is 3K)
 CONFIG_ESP_MAIN_TASK_STACK_SIZE=7000
 CONFIG_ESP_SYSTEM_EVENT_TASK_STACK_SIZE=16384
+CONFIG_LOG_MAXIMUM_LEVEL=2
 
 # Use this to set FreeRTOS kernel tick frequency to 1000 Hz (100 Hz by default).
 # This allows to use 1 ms granuality for thread sleeps (10 ms by default).
@@ -13,6 +14,8 @@ CONFIG_ESP_SYSTEM_EVENT_TASK_STACK_SIZE=16384
 # Allow to skip TLS server cert verification
 CONFIG_ESP_TLS_INSECURE=y
 CONFIG_ESP_TLS_SKIP_SERVER_CERT_VERIFY=y
+
+# TinyUSB Configuration
 CONFIG_TINYUSB=y
 CONFIG_TINYUSB_HID_ENABLED=y
 CONFIG_TINYUSB_HID_COUNT=1

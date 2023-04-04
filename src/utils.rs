@@ -29,6 +29,8 @@ pub fn wifi(
 
     let mut wifi = Box::new(EspWifi::new(modem, sysloop.clone(), None)?);
 
+    unsafe { esp_idf_sys::esp_wifi_set_ps(0) };
+
     info!("Wifi created, about to scan");
 
     let ap_infos = wifi.scan()?;
@@ -95,8 +97,7 @@ pub fn wifi(
 }
 
 pub fn set_led(color: RGB<u8>) {
-    if let Some(ws2812) = STATUS_LED
-        .lock()
-        .unwrap()
-        .as_mut() { ws2812.write(std::iter::once(color)).unwrap() }
+    if let Some(ws2812) = STATUS_LED.lock().unwrap().as_mut() {
+        ws2812.write(std::iter::once(color)).unwrap()
+    }
 }

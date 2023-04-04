@@ -519,6 +519,10 @@ void init_synergy_hid_key_table() {
     table['_'] = HID_KEY_MINUS;
     table['='] = HID_KEY_EQUAL;
     table['+'] = HID_KEY_EQUAL;
+    table[';'] = HID_KEY_SEMICOLON;
+    table[':'] = HID_KEY_SEMICOLON;
+    table['\''] = HID_KEY_APOSTROPHE;
+    table['"'] = HID_KEY_APOSTROPHE;
     table['.'] = HID_KEY_PERIOD;
     table[','] = HID_KEY_COMMA;
     table['`'] = HID_KEY_GRAVE;
@@ -530,7 +534,7 @@ void init_synergy_hid_key_table() {
     table[ kKeyTab ] = HID_KEY_TAB ;
     // table[ kKeyLinefeed ] = HID_KEY_ ;
     table[ kKeyClear ] = HID_KEY_CLEAR ;
-    table[ kKeyReturn ] = HID_KEY_RETURN ;
+    table[ kKeyReturn ] = HID_KEY_ENTER ;
     table[ kKeyPause ] = HID_KEY_PAUSE ;
     table[ kKeyScrollLock ] = HID_KEY_SCROLL_LOCK ;
     table[ kKeySysReq ] = HID_KEY_SYSREQ_ATTENTION ;
@@ -751,10 +755,11 @@ int main() {
         printf("0x%02X,", table[i]);
     }
     printf("];\n");
-    // printf("media_tab = b'");
-    // for (int i = 0xE000; i < 0xE100; i++) {
-    //     printf("\\x%02X", table[i]);
-    // }
+    printf("const MEDIA_TAB: [u8; 256] = [");
+    for (int i = 0xE000; i < 0xE100; i++) {
+        printf("0x%02X,", table[i]);
+    }
+    printf("];\n");
     return 0;
 }
 
