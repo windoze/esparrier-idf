@@ -249,7 +249,7 @@ static uint8_t get_modifier() {
 
 void usb_util_key_down(uint8_t key, uint16_t button)
 {
-    ESP_LOGI(TAG, ">>>> Key down");
+    ESP_LOGD(TAG, ">>>> Key down");
     ESP_LOGD(TAG, "Key down: button: %i key: %i", button, key);
     if (key == 0)
     {
@@ -274,7 +274,7 @@ void usb_util_key_down(uint8_t key, uint16_t button)
 
     for (int i = 0; i < 6; i++)
     {
-        ESP_LOGI(TAG, "Button %i = %i", i, key_report[i]);
+        ESP_LOGD(TAG, "Button %i = %i", i, key_report[i]);
     }
     ESP_LOGD(TAG, "<<<< Key down");
     if (!initialized)
@@ -286,7 +286,7 @@ void usb_util_key_down(uint8_t key, uint16_t button)
 
 void usb_util_key_up(uint16_t button)
 {
-    ESP_LOGI(TAG, ">>>> Key up");
+    ESP_LOGD(TAG, ">>>> Key up");
     uint8_t key = server_button_state[button];
     ESP_LOGD(TAG, "Key up: button: %i", button);
     server_button_state[button] = 0;
@@ -302,7 +302,7 @@ void usb_util_key_up(uint16_t button)
 done:
     for (int i = 0; i < 6; i++)
     {
-        ESP_LOGI(TAG, "Button %i = %i", i, key_report[i]);
+        ESP_LOGD(TAG, "Button %i = %i", i, key_report[i]);
     }
     ESP_LOGD(TAG, "<<<< Key up");
 

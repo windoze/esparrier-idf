@@ -93,7 +93,7 @@ impl Actuator for UsbHidActuator {
     }
 
     fn key_down(&mut self, key: u16, mask: u16, button: u16) {
-        info!("Key down {key} {mask} {button}");
+        debug!("Key down {key} {mask} {button}");
         let hid = synergy_to_hid(key);
         if hid == 0 {
             warn!("Keycode not found");
@@ -104,7 +104,7 @@ impl Actuator for UsbHidActuator {
     }
 
     fn key_repeat(&mut self, key: u16, mask: u16, button: u16, count: u16) {
-        info!("Key repeat {key} {mask} {button} {count}");
+        debug!("Key repeat {key} {mask} {button} {count}");
         let hid = synergy_to_hid(key);
         debug!("Keycode: {}", hid);
         if hid == 0 {
@@ -117,7 +117,7 @@ impl Actuator for UsbHidActuator {
     }
 
     fn key_up(&mut self, key: u16, mask: u16, button: u16) {
-        info!("Key up {key} {mask} {button}");
+        debug!("Key up {key} {mask} {button}");
         let hid = synergy_to_hid(key);
         debug!("Keycode: {}", hid);
         if hid == 0 {
