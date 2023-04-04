@@ -3,8 +3,7 @@ use std::collections::HashMap;
 use log::{debug, info, warn};
 use smart_leds::RGB;
 
-use crate::{barrier::Actuator, utils::set_led, keycodes::synergy_to_hid};
-
+use crate::{barrier::Actuator, keycodes::synergy_to_hid, utils::set_led};
 
 extern "C" {
     fn usb_util_init();
@@ -23,6 +22,7 @@ pub struct UsbHidActuator {
     pub x: u16,
     pub y: u16,
     pub options: HashMap<String, u32>,
+    pub flip_mouse_wheel: u8,
     pub v_scroll_scale: f32,
     pub h_scroll_scale: f32,
 }
@@ -36,6 +36,7 @@ impl UsbHidActuator {
             x: 0,
             y: 0,
             options: HashMap::new(),
+            flip_mouse_wheel: env!("REVERSED_WHEEL").parse().unwrap_or(0),
             v_scroll_scale: env!("V_SCROLL_SCALE").parse().unwrap_or(1.0),
             h_scroll_scale: env!("H_SCROLL_SCALE").parse().unwrap_or(1.0),
         }
@@ -86,10 +87,14 @@ impl Actuator for UsbHidActuator {
     }
 
     fn mouse_wheel(&mut self, x: i16, y: i16) {
+        debug!(
+            "Mouse wheel {x}*{} {y}*{}",
+            self.h_scroll_scale, self.v_scroll_scale
+        );
+        let x = (x as f32 * self.h_scroll_scale / 120.0) as i16;
+        let y = (y as f32 * self.v_scroll_scale / 120.0) as i16;
         debug!("Mouse wheel {x} {y}");
-        let x = (x as f32 * self.h_scroll_scale) as i16;
-        let y = (y as f32 * self.v_scroll_scale) as i16;
-        unsafe { usb_util_mouse_wheel(y, x) }
+        unsafe { usb_util_mouse_wheel(if self.flip_mouse_wheel > 0 { -y } else { y }, x) }
     }
 
     fn key_down(&mut self, key: u16, mask: u16, button: u16) {

@@ -21,8 +21,9 @@ Esparrier is a Barrier client for ESP32S3.
         * `export SCREEN_NAME="SCREEN_NAME"`
         * `export SCREEN_WIDTH="SCREEN_WIDTH"`
         * `export SCREEN_HEIGHT="SCREEN_HEIGHT"`
-        * `export V_SCROLL_SCALE="FLOAT_NUMBER_TO_SCALE_VERTICAL_MOUSE_WHEEL e.g. 0.5"`
-        * `export H_SCROLL_SCALE="FLOAT_NUMBER_TO_SCALE_HORIZONTAL_MOUSE_WHEEL e.g. 0.5"`
+        * `export REVERSED_WHEEL="1 to reverse the mouse wheel, 0 to use the default"`
+        * `export V_SCROLL_SCALE="FLOAT_NUMBER_TO_SCALE_VERTICAL_MOUSE_WHEEL e.g. 1.0"`
+        * `export H_SCROLL_SCALE="FLOAT_NUMBER_TO_SCALE_HORIZONTAL_MOUSE_WHEEL e.g. 1.0"`
     2. Put your board in the download mode, then build and flash with `cargo run --release`.
 
 ## Run
