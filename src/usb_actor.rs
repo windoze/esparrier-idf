@@ -14,6 +14,7 @@ extern "C" {
     fn usb_util_mouse_button(button: u8);
     fn usb_util_mouse_button_up(button: u8);
     fn usb_util_mouse_wheel(scroll: i16, pan: i16);
+    fn usb_util_reset_key_states();
 }
 
 pub struct UsbHidActuator {
@@ -92,7 +93,7 @@ impl Actuator for UsbHidActuator {
     }
 
     fn key_down(&mut self, key: u16, mask: u16, button: u16) {
-        debug!("Key down {key} {mask} {button}");
+        info!("Key down {key} {mask} {button}");
         let hid = synergy_to_hid(key);
         if hid == 0 {
             warn!("Keycode not found");
@@ -103,7 +104,7 @@ impl Actuator for UsbHidActuator {
     }
 
     fn key_repeat(&mut self, key: u16, mask: u16, button: u16, count: u16) {
-        debug!("Key repeat {key} {mask} {button} {count}");
+        info!("Key repeat {key} {mask} {button} {count}");
         let hid = synergy_to_hid(key);
         debug!("Keycode: {}", hid);
         if hid == 0 {
@@ -116,7 +117,7 @@ impl Actuator for UsbHidActuator {
     }
 
     fn key_up(&mut self, key: u16, mask: u16, button: u16) {
-        debug!("Key up {key} {mask} {button}");
+        info!("Key up {key} {mask} {button}");
         let hid = synergy_to_hid(key);
         debug!("Keycode: {}", hid);
         if hid == 0 {
@@ -140,11 +141,13 @@ impl Actuator for UsbHidActuator {
         info!("Enter");
         // Lighter green
         set_led(RGB { r: 0, g: 64, b: 0 });
+        unsafe { usb_util_reset_key_states() }
     }
 
     fn leave(&mut self) {
         info!("Leave");
         // Dim yellow
         set_led(RGB { r: 40, g: 20, b: 0 });
+        unsafe { usb_util_reset_key_states() }
     }
 }

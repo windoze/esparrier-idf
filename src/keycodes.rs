@@ -8,7 +8,10 @@ const MEDIA_TAB: [u8; 256] = [0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
 
 
 pub fn synergy_to_hid(id: u16) -> u8 {
-    if id < 0x100 {
+    if id == 0xEE20 {
+        // HACK: Synergy sends kKeyLeftTab(0xEE20) when the pressing GUI+SHIFT+TAB, but kKeyTab when pressing GUI+TAB.
+        0x2B
+    } else if id < 0x100 {
         TABLE[id as usize]
     } else if id >= 0xEF00 && id <= 0xEFFF {
         EXT_TAB[(id - 0xEF00) as usize]
