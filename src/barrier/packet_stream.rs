@@ -72,7 +72,12 @@ impl<S: PacketReader + PacketWriter> PacketStream<S> {
                 let id = self.stream.read_u8()?;
                 let seq_num = self.stream.read_u32()?;
                 let mark = self.stream.read_u8()?;
-                let data = self.stream.read_bytes()?;
+
+                // NOTE: Do not save clipboard content as MCU doesn't have enough memory
+                // let data = self.stream.read_bytes()?;
+                self.stream.consume_bytes()?;
+                let data = Vec::new();
+                
                 Packet::SetClipboard {
                     id,
                     seq_num,

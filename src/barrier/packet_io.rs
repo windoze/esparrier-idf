@@ -3,6 +3,18 @@ use std::io::{Read, Write};
 use super::PacketError;
 
 pub trait PacketReader: Read + Send + Unpin {
+    fn consume_bytes(&mut self) -> Result<(), PacketError> {
+        let mut len = self.read_u32()? as usize;
+
+        let mut buf = vec![0; 16];
+        while len > 0 {
+            let to_read = std::cmp::min(len, buf.len());
+            self.read_exact(&mut buf[..to_read])?;
+            len -= to_read;
+        }
+        Ok(())
+    }
+
     fn read_packet_size(&mut self) -> Result<u32, PacketError> {
         self.read_u32()
     }
