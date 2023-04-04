@@ -486,15 +486,15 @@ static const KeyID		kKeyLaunchpad		= 0xE0C1;
 uint8_t table[0x10000] = {0};
 
 void init_synergy_hid_key_table() {
-    for (int i = 'A'; i < 'Z'; i++) {
+    for (int i = 'A'; i <= 'Z'; i++) {
         table[i] = HID_KEY_A + (i - 'A');
     }
-    for (int i = 'a'; i < 'z'; i++) {
+    for (int i = 'a'; i <= 'z'; i++) {
         table[i] = HID_KEY_A + (i - 'a');
     }
 
 
-    for (int i = 0; i < 9; i++) {
+    for (int i = 0; i <= 9; i++) {
         table['1' + i] = HID_KEY_1 + i;
     }
     table[' '] = HID_KEY_SPACE;
