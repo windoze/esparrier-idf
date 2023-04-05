@@ -24,7 +24,7 @@ Esparrier is a [Barrier](https://github.com/debauchee/barrier) client for ESP32S
         * `export REVERSED_WHEEL="1 to reverse the mouse wheel, 0 to use the default"`
         * `export V_SCROLL_SCALE="FLOAT_NUMBER_TO_SCALE_VERTICAL_MOUSE_WHEEL e.g. 1.0"`
         * `export H_SCROLL_SCALE="FLOAT_NUMBER_TO_SCALE_HORIZONTAL_MOUSE_WHEEL e.g. 1.0"`
-    2. Put your board in the download mode, then build and flash with `cargo run --release`.
+    2. Put your board in the download mode, then build and flash with `cargo run --release`. On M5Atom S3 Lite, you need to hold the reset button until the green LED turns on, then release the button. And you need to press the reset button again after flashing to exit the download mode.
 
 ## Run
 
