@@ -125,7 +125,7 @@ impl<const N: usize> KeyReport<N> {
                     }
                 }
                 self.send_key();
-            },
+            }
             _ => return,
         }
     }
@@ -279,7 +279,11 @@ impl Actuator for UsbHidActuator {
         let x = (x as f32 * self.h_scroll_scale / 120.0) as i16;
         let y = (y as f32 * self.v_scroll_scale / 120.0) as i16;
         debug!("Mouse wheel {x} {y}");
-        self.mouse_report.mouse_wheel(y as i8, x as i8);
+        if self.flip_mouse_wheel == 0 {
+            self.mouse_report.mouse_wheel(y as i8, x as i8);
+        } else {
+            self.mouse_report.mouse_wheel(-y as i8, -x as i8);
+        }
     }
 
     fn key_down(&mut self, key: u16, mask: u16, button: u16) {
