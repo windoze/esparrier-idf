@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use log::{debug, info, warn};
 use smart_leds::RGB;
 
-use crate::{barrier::Actuator, keycodes::synergy_to_hid, utils::set_led};
+use crate::{barrier::Actuator, keycodes::{synergy_to_hid, synergy_mouse_button}, utils::set_led};
 
 extern "C" {
     fn usb_util_init();
@@ -14,6 +14,7 @@ extern "C" {
     fn usb_util_mouse_button_up(button: u8);
     fn usb_util_mouse_wheel(scroll: i16, pan: i16);
     fn usb_util_reset_key_states();
+    fn usb_util_clear_mouse_states();
 }
 
 pub struct UsbHidActuator {
@@ -78,12 +79,12 @@ impl Actuator for UsbHidActuator {
 
     fn mouse_down(&mut self, button: i8) {
         debug!("Mouse down {button}");
-        unsafe { usb_util_mouse_button(button as u8) }
+        unsafe { usb_util_mouse_button(synergy_mouse_button(button)) }
     }
 
     fn mouse_up(&mut self, button: i8) {
         debug!("Mouse up {button}");
-        unsafe { usb_util_mouse_button_up(button as u8) }
+        unsafe { usb_util_mouse_button_up(synergy_mouse_button(button)) }
     }
 
     fn mouse_wheel(&mut self, x: i16, y: i16) {
@@ -98,7 +99,7 @@ impl Actuator for UsbHidActuator {
     }
 
     fn key_down(&mut self, key: u16, mask: u16, button: u16) {
-        debug!("Key down {key} {mask} {button}");
+        info!("Key down {key} {mask} {button}");
         let hid = synergy_to_hid(key);
         if hid == 0 {
             warn!("Keycode not found");
@@ -147,6 +148,7 @@ impl Actuator for UsbHidActuator {
         // Lighter green
         set_led(RGB { r: 0, g: 64, b: 0 });
         unsafe { usb_util_reset_key_states() }
+        unsafe { usb_util_clear_mouse_states() }        
     }
 
     fn leave(&mut self) {
@@ -154,5 +156,6 @@ impl Actuator for UsbHidActuator {
         // Dim yellow
         set_led(RGB { r: 40, g: 20, b: 0 });
         unsafe { usb_util_reset_key_states() }
+        unsafe { usb_util_clear_mouse_states() }
     }
 }

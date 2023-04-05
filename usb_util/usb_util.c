@@ -96,7 +96,7 @@ static const uint8_t hid_configuration_descriptor[] = {
     TUD_CONFIG_DESCRIPTOR(1, 1, 0, TUSB_DESC_TOTAL_LEN, TUSB_DESC_CONFIG_ATT_REMOTE_WAKEUP, 100),
 
     // Interface number, string index, boot protocol, report descriptor len, EP In address, size & polling interval
-    TUD_HID_DESCRIPTOR(0, 0, false, sizeof(hid_report_descriptor), 0x81, 16, 10),
+    TUD_HID_DESCRIPTOR(0, 0, true, sizeof(hid_report_descriptor), 0x81, 16, 10),
 };
 
 /********* TinyUSB HID callbacks ***************/
@@ -330,6 +330,15 @@ void usb_util_reset_key_states() {
     }
     static uint8_t empty_key_report[6] = {0};
     tud_hid_keyboard_report(HID_PROTOCOL_KEYBOARD, 0, empty_key_report);
+}
+
+void usb_util_clear_mouse_states() {
+    if (!initialized)
+    {
+        return;
+    }
+    _buttons = 0;
+    usb_util_move_to_pos(_x, _y);
 }
 
 void usb_util_init(void)

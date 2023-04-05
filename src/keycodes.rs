@@ -21,3 +21,26 @@ pub fn synergy_to_hid(id: u16) -> u8 {
         0
     }
 }
+
+// MOUSE_BUTTON_LEFT     = TU_BIT(0), ///< Left button
+// MOUSE_BUTTON_RIGHT    = TU_BIT(1), ///< Right button
+// MOUSE_BUTTON_MIDDLE   = TU_BIT(2), ///< Middle button
+// MOUSE_BUTTON_BACKWARD = TU_BIT(3), ///< Backward button,
+// MOUSE_BUTTON_FORWARD  = TU_BIT(4), ///< Forward button,
+
+
+pub fn synergy_mouse_button(button: i8) -> u8 {
+    match button {
+        // MOUSE_BUTTON_LEFT
+        1 => 0x01,
+        // MOUSE_BUTTON_MIDDLE
+        2 => 0x04,
+        // MOUSE_BUTTON_RIGHT
+        3 => 0x02,
+        // MOUSE_BUTTON_BACKWARD
+        4 => 0x08,
+        // MOUSE_BUTTON_FORWARD
+        5 => 0x10,
+        _ => 0,
+    }
+}
