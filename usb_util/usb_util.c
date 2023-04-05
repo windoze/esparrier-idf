@@ -6,25 +6,11 @@
 
 #include <stdlib.h>
 #include <device/usbd_pvt.h>
-// #include <hal/uart_types.h>
-// #include <driver/uart.h>
 #include "esp_log.h"
-// #include "freertos/FreeRTOS.h"
-// #include "freertos/task.h"
 #include "tinyusb.h"
 #include "class/hid/hid.h"
 #include "class/hid/hid_device.h"
-// #include "driver/gpio.h"
-// #include "key_types.h"
-// #include "led_strip.h"
 #include "sdkconfig.h"
-
-// // zero = no movement
-// #define POINTER_POS_MIN_VAL 1
-// #define POINTER_POS_MAX_VAL 32767 //  0x7fff according to usb spec
-// #define ECHO_UART_PORT_NUM      (UART_NUM_0)
-// #define ECHO_UART_BAUD_RATE     (460800)
-// #define ECHO_TASK_STACK_SIZE    (2048)
 
 // Mouse Report Descriptor Template
 #define TUD_HID_REPORT_DESC_MOUSE_ABS(...)                                                        \
@@ -141,209 +127,35 @@ typedef struct TU_ATTR_PACKED
 
 static int initialized = 0;
 
-static uint8_t _buttons = 0;
-static uint16_t _x = 0;
-static uint16_t _y = 0;
-
-void usb_util_move_to_pos(uint16_t x, uint16_t y)
+void usb_util_abs_mouse_report(uint8_t buttons, uint16_t x, uint16_t y, int8_t wheel, int8_t pan)
 {
-    _x = x;
-    _y = y;
     hid_abs_mouse_report_t report =
         {
-            .buttons = _buttons,
+            .buttons = buttons,
             .x = x,
             .y = y,
-            .wheel = 0,
-            .pan = 0};
-    if (!initialized)
-    {
-        return;
-    }
-    tud_hid_n_report(0, HID_PROTOCOL_MOUSE, &report, sizeof(report));
-}
-
-static void set_mouse_buttons(uint8_t buttons)
-{
-    _buttons = buttons;
-}
-
-static void unset_mouse_buttons(uint8_t buttons)
-{
-    _buttons = _buttons & ~buttons;
-}
-
-void usb_util_mouse_button(uint8_t buttons)
-{
-    set_mouse_buttons(buttons);
-    usb_util_move_to_pos(_x, _y);
-}
-
-void usb_util_mouse_button_up(uint8_t buttons)
-{
-    unset_mouse_buttons(buttons);
-    usb_util_move_to_pos(_x, _y);
-}
-
-void usb_util_mouse_wheel(int8_t scroll, int8_t pan)
-{
-    hid_abs_mouse_report_t report =
-        {
-            .buttons = _buttons,
-            .x = _x,
-            .y = _y,
-            .wheel = scroll,
+            .wheel = wheel,
             .pan = pan};
     if (!initialized)
     {
+        ESP_LOGI(TAG, "Buttons: %i, X: %i, Y: %i, Wheel: %i, Pan: %i", buttons, x, y, wheel, pan);
         return;
     }
     tud_hid_n_report(0, HID_PROTOCOL_MOUSE, &report, sizeof(report));
 }
 
-// #define button_state_count 6
-static uint8_t server_button_state[0x200] = {0};
-static uint8_t key_report[6] = {0};
-
-// static void debug_buttons() {
-//     for (int i = 0; i < button_state_count; i++) {
-//         if (button_state[i] != 0) {
-//             ESP_LOGI(TAG, "Button state %i = %i", i, button_state[i]);
-//         }
-//     }
-// }
-
-static uint8_t get_modifier() {
-    uint8_t modifier = 0;
-    for (int i = 0; i < 6; i++) {
-        if (key_report[i] == 0) {
-            continue;
-        }
-        if (key_report[i] == 0xE0) {
-            modifier |= KEYBOARD_MODIFIER_LEFTCTRL;
-        }
-        if (key_report[i] == 0xE1) {
-            modifier |= KEYBOARD_MODIFIER_LEFTSHIFT;
-        }
-        if (key_report[i] == 0xE2) {
-            modifier |= KEYBOARD_MODIFIER_LEFTALT;
-        }
-        if (key_report[i] == 0xE3) {
-            modifier |= KEYBOARD_MODIFIER_LEFTGUI;
-        }
-        if (key_report[i] == 0xE4) {
-            modifier |= KEYBOARD_MODIFIER_RIGHTCTRL;
-        }
-        if (key_report[i] == 0xE5) {
-            modifier |= KEYBOARD_MODIFIER_RIGHTSHIFT;
-        }
-        if (key_report[i] == 0xE6) {
-            modifier |= KEYBOARD_MODIFIER_RIGHTALT;
-        }
-        if (key_report[i] == 0xE7) {
-            modifier |= KEYBOARD_MODIFIER_RIGHTGUI;
-        }
-    }
-    return modifier;
-}
-
-void usb_util_key_down(uint8_t key, uint16_t button)
+void usb_util_keyboard_report(uint8_t modifier, uint8_t* key_report)
 {
-    ESP_LOGD(TAG, ">>>> Key down");
-    ESP_LOGD(TAG, "Key down: button: %i key: %i", button, key);
-    if (key == 0)
-    {
-        return;
-    }
-    server_button_state[button] = key;
-
-    ESP_LOGD(TAG, "Got keydown for %i", key);
-    for (int i = 0; i < 6; i++)
-    {
-        if (key_report[i] == 0)
-        {
-            key_report[i] = key;
-            break;
-        }
-    }
-
-    for (int i = 0; i < 6; i++)
-    {
-        ESP_LOGD(TAG, "Button %i = %i", i, key_report[i]);
-    }
-    ESP_LOGD(TAG, "<<<< Key down");
     if (!initialized)
     {
-        ESP_LOGI(TAG, "Modifier: %i, Button [%i, %i, %i, %i, %i, %i]", get_modifier(), key_report[0], key_report[1], key_report[2], key_report[3], key_report[4], key_report[5]);
+        ESP_LOGI(TAG, "Modifier: %i, Button [%i, %i, %i, %i, %i, %i]", modifier, key_report[0], key_report[1], key_report[2], key_report[3], key_report[4], key_report[5]);
         return;
     }
-    tud_hid_keyboard_report(HID_PROTOCOL_KEYBOARD, get_modifier(), key_report);
-}
-
-void usb_util_key_up(uint8_t key, uint16_t button)
-{
-    ESP_LOGD(TAG, ">>>> Key up");
-    ESP_LOGD(TAG, "Key up: button: %i", button);
-    server_button_state[button] = 0;
-    for (int i = 0; i < 6; i++)
-    {
-        if (key_report[i] == key)
-        {
-            key_report[i] = 0;
-        }
-    }
-    // ESP_LOGE(TAG, "Got keyup for key with no corresponding keydown? %i", key);
-
-    for (int i = 0; i < 6; i++)
-    {
-        ESP_LOGD(TAG, "Button %i = %i", i, key_report[i]);
-    }
-    ESP_LOGD(TAG, "<<<< Key up");
-
-    if (!initialized)
-    {
-        ESP_LOGI(TAG, "Modifier: %i, Button [%i, %i, %i, %i, %i, %i]", get_modifier(), key_report[0], key_report[1], key_report[2], key_report[3], key_report[4], key_report[5]);
-        return;
-    }
-
-    // static uint8_t empty_key_report[6] = {0};
-    // tud_hid_keyboard_report(HID_PROTOCOL_KEYBOARD, 0, empty_key_report);
-
-    tud_hid_keyboard_report(HID_PROTOCOL_KEYBOARD, get_modifier(), key_report);
-}
-
-void usb_util_reset_key_states() {
-    for (int i = 0; i < 0x200; i++) {
-        server_button_state[i] = 0;
-    }
-    for (int i = 0; i < 6; i++) {
-        key_report[i] = 0;
-    }
-    if (!initialized)
-    {
-        return;
-    }
-    static uint8_t empty_key_report[6] = {0};
-    tud_hid_keyboard_report(HID_PROTOCOL_KEYBOARD, 0, empty_key_report);
-}
-
-void usb_util_clear_mouse_states() {
-    if (!initialized)
-    {
-        return;
-    }
-    _buttons = 0;
-    usb_util_move_to_pos(_x, _y);
+    tud_hid_keyboard_report(HID_PROTOCOL_KEYBOARD, modifier, key_report);
 }
 
 void usb_util_init(void)
 {
-    // init_synergy_hid_key_table();
-    // configure_led();
-    // led_strip_set_pixel(led_strip, 0, 16, 16, 16);
-    // led_strip_refresh(led_strip);
-    // vTaskDelay(pdMS_TO_TICKS(50));
-
     ESP_LOGI(TAG, "USB initialization");
 
     const tinyusb_config_t tusb_cfg = {
