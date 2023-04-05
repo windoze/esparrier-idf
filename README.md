@@ -9,6 +9,7 @@ Esparrier is a [Barrier](https://github.com/debauchee/barrier) client for ESP32S
 2. Install Rust ESP32 tools:
     * `espup` - https://github.com/esp-rs/espup
     * `cargo-espflash` - https://github.com/esp-rs/espflash
+    * `espmonitor` - https://github.com/esp-rs/espmonitor
     * Install Rust ESP toolchain with `espup install`
 3. Set environment variable for Rust ESP toolchain:
     * `source $HOME/export-esp.sh`
@@ -33,7 +34,7 @@ Esparrier is a [Barrier](https://github.com/debauchee/barrier) client for ESP32S
 3. The LED should be red on start, then turn blue when the board is connected to the WiFi, and finally turn dim yellow when the board is connected to the Barrier server.
 4. When Barrier enters the screen, the LED turns bright green, and when Barrier leaves the screen, the LED turns dim yellow.
 5. The board emulates a standard keyboard and an absolute mouse, it should work in any OS.
-6. USB HID boot protocol is used, so you can should be able to use the board as a USB keyboard/mouse in BIOS/EFI or even if the OS doesn't have a driver for it.
+6. USB HID boot protocol is used, so you should be able to use the board as a USB keyboard/mouse in BIOS/EFI or even if the OS doesn't have a driver for it.
 
 ## NOTES:
 
