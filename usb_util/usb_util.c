@@ -84,7 +84,7 @@ static const uint8_t hid_configuration_descriptor[] = {
     TUD_CONFIG_DESCRIPTOR(1, 1, 0, TUSB_DESC_TOTAL_LEN, TUSB_DESC_CONFIG_ATT_REMOTE_WAKEUP, 100),
 
     // Interface number, string index, boot protocol, report descriptor len, EP In address, size & polling interval
-    TUD_HID_DESCRIPTOR(0, 0, true, sizeof(hid_report_descriptor), 0x81, 16, 2),
+    TUD_HID_DESCRIPTOR(0, 0, true, sizeof(hid_report_descriptor), 0x81, 16, 1),
 };
 
 /********* TinyUSB HID callbacks ***************/
@@ -154,6 +154,8 @@ void usb_util_keyboard_report(uint8_t modifier, uint8_t *key_report)
         return;
     }
     tud_hid_keyboard_report(HID_PROTOCOL_KEYBOARD, modifier, key_report);
+    // Delay for 2ms to avoid overflow
+    vTaskDelay(pdMS_TO_TICKS(2));
 }
 
 void usb_util_consumer_report(uint16_t code)
