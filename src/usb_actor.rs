@@ -5,7 +5,7 @@ use smart_leds::RGB;
 
 use crate::{
     barrier::Actuator,
-    keycodes::{synergy_mouse_button, synergy_to_hid},
+    keycodes::{synergy_mouse_button, synergy_to_hid, KeyCode},
     utils::set_led,
 };
 
@@ -15,6 +15,7 @@ extern "C" {
     fn usb_util_init();
     fn usb_util_keyboard_report(modifier: u8, keycode: *const u8);
     fn usb_util_abs_mouse_report(buttons: u8, x: u16, y: u16, wheel: i8, pan: i8);
+    fn usb_util_consumer_report(code: u16);
 }
 
 struct AbsMouseReport {
@@ -67,6 +68,7 @@ impl AbsMouseReport {
     }
 
     fn send<S: Into<Option<i8>>, P: Into<Option<i8>>>(&self, scroll: S, pan: P) {
+        // Scale the position to the screen size
         unsafe {
             usb_util_abs_mouse_report(
                 self.button,
@@ -82,6 +84,7 @@ impl AbsMouseReport {
 struct KeyReport<const N: usize> {
     modifier: u8,
     keycode: [u8; N],
+    consumer_control: u16,
 }
 
 impl<const N: usize> KeyReport<N> {
@@ -89,63 +92,90 @@ impl<const N: usize> KeyReport<N> {
         Self {
             modifier: 0,
             keycode: [0; N],
+            consumer_control: 0,
         }
     }
 
-    fn press_key(&mut self, key: u8) {
-        match self.get_modifier(key) {
-            Some(modifier) => self.modifier |= modifier,
-            None => {
-                let mut found = false;
-                for i in 0..N {
-                    if self.keycode[i] == 0 {
-                        self.keycode[i] = key;
-                        found = true;
-                        break;
-                    }
-                }
-                if !found {
-                    // roll over the first key
-                    for i in 1..N {
-                        self.keycode.swap(i - 1, i);
-                    }
-                    self.keycode[N - 1] = key;
-                }
+    fn press_key(&mut self, key: KeyCode) {
+        match key {
+            KeyCode::Consumer(consumer) => {
+                self.consumer_control = consumer;
+                self.send_consumer();
+                return;
             }
+            KeyCode::Key(key) => {
+                match self.get_modifier(key) {
+                    Some(modifier) => self.modifier |= modifier,
+                    None => {
+                        let mut found = false;
+                        for i in 0..N {
+                            if self.keycode[i] == 0 {
+                                self.keycode[i] = key;
+                                found = true;
+                                break;
+                            }
+                        }
+                        if !found {
+                            // roll over the first key
+                            for i in 1..N {
+                                self.keycode.swap(i - 1, i);
+                            }
+                            self.keycode[N - 1] = key;
+                        }
+                    }
+                }
+                self.send_key();
+            },
+            _ => return,
         }
-        self.send();
     }
 
-    fn release_key(&mut self, key: u8) {
-        match self.get_modifier(key) {
-            Some(modifier) => self.modifier &= !modifier,
-            None => {
-                for i in 0..N {
-                    if self.keycode[i] == key {
-                        self.keycode[i] = 0;
-                        break;
-                    }
-                }
-                // Compact the keycode array
-                let mut pos = 0;
-                for i in 0..N {
-                    if self.keycode[i] != 0 {
-                        self.keycode.swap(i, pos);
-                        pos += 1;
-                    }
-                }
+    fn release_key(&mut self, key: KeyCode) {
+        match key {
+            KeyCode::Consumer(_consumer) => {
+                self.consumer_control = 0;
+                self.send_consumer();
+                return;
             }
+            KeyCode::Key(key) => {
+                match self.get_modifier(key) {
+                    Some(modifier) => self.modifier &= !modifier,
+                    None => {
+                        for i in 0..N {
+                            if self.keycode[i] == key {
+                                self.keycode[i] = 0;
+                                break;
+                            }
+                        }
+                        // Compact the keycode array
+                        let mut pos = 0;
+                        for i in 0..N {
+                            if self.keycode[i] != 0 {
+                                self.keycode.swap(i, pos);
+                                pos += 1;
+                            }
+                        }
+                    }
+                }
+                self.send_key();
+            }
+            _ => (),
         }
-        self.send();
     }
 
     fn clear(&mut self) {
         self.modifier = 0;
         self.keycode = [0; N];
-        self.send();
+        self.send_key();
     }
 
-    fn send(&self) {
+    fn send_consumer(&self) {
+        unsafe {
+            usb_util_consumer_report(self.consumer_control);
+        }
+    }
+
+    fn send_key(&self) {
         unsafe {
             usb_util_keyboard_report(self.modifier, self.keycode.as_ptr());
         }
@@ -255,11 +285,15 @@ impl Actuator for UsbHidActuator {
     fn key_down(&mut self, key: u16, mask: u16, button: u16) {
         debug!("Key down {key} {mask} {button}");
         let hid = synergy_to_hid(key);
-        if hid == 0 {
+        if INIT_USB {
+            debug!("Key {:#04x} -> Keycode: {:?}", key, hid);
+        } else {
+            info!("Key {:#04x} -> Keycode: {:?}", key, hid);
+        }
+        if matches!(hid, KeyCode::None) {
             warn!("Keycode not found");
             return;
         }
-        debug!("Keycode: {}", hid);
         self.key_report.press_key(hid);
     }
 
@@ -271,8 +305,12 @@ impl Actuator for UsbHidActuator {
     fn key_up(&mut self, key: u16, mask: u16, button: u16) {
         debug!("Key up {key} {mask} {button}");
         let hid = synergy_to_hid(key);
-        debug!("Keycode: {}", hid);
-        if hid == 0 {
+        if INIT_USB {
+            debug!("Key {:#04x} -> Keycode: {:?}", key, hid);
+        } else {
+            info!("Key {:#04x} -> Keycode: {:?}", key, hid);
+        }
+        if matches!(hid, KeyCode::None) {
             warn!("Keycode not found");
             return;
         }

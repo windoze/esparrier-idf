@@ -175,33 +175,61 @@
 #define HID_KEY_GUI_RIGHT                 0xE7
 
 // Generic Control
-uint16_t  HID_USAGE_CONSUMER_CONTROL                           = 0x0001;
-// Power Control
-uint16_t  HID_USAGE_CONSUMER_POWER                             = 0x0030;
-uint16_t  HID_USAGE_CONSUMER_RESET                             = 0x0031;
-uint16_t  HID_USAGE_CONSUMER_SLEEP                             = 0x0032;
-// Screen Brightness
-uint16_t  HID_USAGE_CONSUMER_BRIGHTNESS_INCREMENT              = 0x006F;
-uint16_t  HID_USAGE_CONSUMER_BRIGHTNESS_DECREMENT              = 0x0070;
-// These HID usages operate only on mobile systems (battery powered) and
-// require Windows 8 (build 8302 or greater)
-uint16_t  HID_USAGE_CONSUMER_WIRELESS_RADIO_CONTROLS           = 0x000C;
-uint16_t  HID_USAGE_CONSUMER_WIRELESS_RADIO_BUTTONS            = 0x00C6;
-uint16_t  HID_USAGE_CONSUMER_WIRELESS_RADIO_LED                = 0x00C7;
-uint16_t  HID_USAGE_CONSUMER_WIRELESS_RADIO_SLIDER_SWITCH      = 0x00C8;
-// Media Control
-uint16_t  HID_USAGE_CONSUMER_PLAY_PAUSE                        = 0x00CD;
-uint16_t  HID_USAGE_CONSUMER_SCAN_NEXT                         = 0x00B5;
-uint16_t  HID_USAGE_CONSUMER_SCAN_PREVIOUS                     = 0x00B6;
-uint16_t  HID_USAGE_CONSUMER_STOP                              = 0x00B7;
-uint16_t  HID_USAGE_CONSUMER_VOLUME                            = 0x00E0;
-uint16_t  HID_USAGE_CONSUMER_MUTE                              = 0x00E2;
-uint16_t  HID_USAGE_CONSUMER_BASS                              = 0x00E3;
-uint16_t  HID_USAGE_CONSUMER_TREBLE                            = 0x00E4;
-uint16_t  HID_USAGE_CONSUMER_BASS_BOOST                        = 0x00E5;
-uint16_t  HID_USAGE_CONSUMER_VOLUME_INCREMENT                  = 0x00E9;
-uint16_t  HID_USAGE_CONSUMER_VOLUME_DECREMENT                  = 0x00EA;
+enum {
+  // Generic Control
+  HID_USAGE_CONSUMER_CONTROL                           = 0x0001,
 
+  // Power Control
+  HID_USAGE_CONSUMER_POWER                             = 0x0030,
+  HID_USAGE_CONSUMER_RESET                             = 0x0031,
+  HID_USAGE_CONSUMER_SLEEP                             = 0x0032,
+
+  // Screen Brightness
+  HID_USAGE_CONSUMER_BRIGHTNESS_INCREMENT              = 0x006F,
+  HID_USAGE_CONSUMER_BRIGHTNESS_DECREMENT              = 0x0070,
+
+  // These HID usages operate only on mobile systems (battery powered) and
+  // require Windows 8 (build 8302 or greater).
+  HID_USAGE_CONSUMER_WIRELESS_RADIO_CONTROLS           = 0x000C,
+  HID_USAGE_CONSUMER_WIRELESS_RADIO_BUTTONS            = 0x00C6,
+  HID_USAGE_CONSUMER_WIRELESS_RADIO_LED                = 0x00C7,
+  HID_USAGE_CONSUMER_WIRELESS_RADIO_SLIDER_SWITCH      = 0x00C8,
+
+  // Media Control
+  HID_USAGE_CONSUMER_PLAY_PAUSE                        = 0x00CD,
+  HID_USAGE_CONSUMER_SCAN_NEXT                         = 0x00B5,
+  HID_USAGE_CONSUMER_SCAN_PREVIOUS                     = 0x00B6,
+  HID_USAGE_CONSUMER_STOP                              = 0x00B7,
+  HID_USAGE_CONSUMER_VOLUME                            = 0x00E0,
+  HID_USAGE_CONSUMER_MUTE                              = 0x00E2,
+  HID_USAGE_CONSUMER_BASS                              = 0x00E3,
+  HID_USAGE_CONSUMER_TREBLE                            = 0x00E4,
+  HID_USAGE_CONSUMER_BASS_BOOST                        = 0x00E5,
+  HID_USAGE_CONSUMER_VOLUME_INCREMENT                  = 0x00E9,
+  HID_USAGE_CONSUMER_VOLUME_DECREMENT                  = 0x00EA,
+  HID_USAGE_CONSUMER_BASS_INCREMENT                    = 0x0152,
+  HID_USAGE_CONSUMER_BASS_DECREMENT                    = 0x0153,
+  HID_USAGE_CONSUMER_TREBLE_INCREMENT                  = 0x0154,
+  HID_USAGE_CONSUMER_TREBLE_DECREMENT                  = 0x0155,
+
+  // Application Launcher
+  HID_USAGE_CONSUMER_AL_CONSUMER_CONTROL_CONFIGURATION = 0x0183,
+  HID_USAGE_CONSUMER_AL_EMAIL_READER                   = 0x018A,
+  HID_USAGE_CONSUMER_AL_CALCULATOR                     = 0x0192,
+  HID_USAGE_CONSUMER_AL_LOCAL_BROWSER                  = 0x0194,
+
+  // Browser/Explorer Specific
+  HID_USAGE_CONSUMER_AC_SEARCH                         = 0x0221,
+  HID_USAGE_CONSUMER_AC_HOME                           = 0x0223,
+  HID_USAGE_CONSUMER_AC_BACK                           = 0x0224,
+  HID_USAGE_CONSUMER_AC_FORWARD                        = 0x0225,
+  HID_USAGE_CONSUMER_AC_STOP                           = 0x0226,
+  HID_USAGE_CONSUMER_AC_REFRESH                        = 0x0227,
+  HID_USAGE_CONSUMER_AC_BOOKMARKS                      = 0x022A,
+
+  // Mouse Horizontal scroll
+  HID_USAGE_CONSUMER_AC_PAN                            = 0x0238,
+};
 
 
 //! Key ID
@@ -484,6 +512,7 @@ static const KeyID		kKeyLaunchpad		= 0xE0C1;
 
 
 uint8_t table[0x10000] = {0};
+uint16_t consumer_table[0x10000] = {0};
 
 void init_synergy_hid_key_table() {
     for (int i = 'A'; i <= 'Z'; i++) {
@@ -657,32 +686,32 @@ void init_synergy_hid_key_table() {
     // table[ kKeyHyper_L ] = HID_KEY_ ;
     // table[ kKeyHyper_R ] = HID_KEY_ ;
 
-    // table[ kKeyEject ] = HID_USAGE_CONSUMER ;
-    // table[ kKeySleep ] = HID_KEY_ ;
-    // table[ kKeyWWWBack ] = HID_KEY_ ;
-    // table[ kKeyWWWForward ] = HID_KEY_ ;
-    // table[ kKeyWWWRefresh ] = HID_KEY_ ;
-    // table[ kKeyWWWStop ] = HID_KEY_ ;
-    // table[ kKeyWWWSearch ] = HID_KEY_ ;
-    // table[ kKeyWWWFavorites ] = HID_KEY_ ;
-    // table[ kKeyWWWHome ] = HID_KEY_ ;
-    table[ kKeyAudioMute ] = HID_KEY_MUTE ;
-    table[ kKeyAudioDown ] = HID_KEY_VOLUME_DOWN ;
-    table[ kKeyAudioUp ] = HID_KEY_VOLUME_UP ;
-    // table[ kKeyAudioNext ] = HID_KEY_ ;
-    // table[ kKeyAudioPrev ] = HID_KEY_ ;
-    // table[ kKeyAudioStop ] = HID_KEY_ ;
-    // table[ kKeyAudioPlay ] = HID_KEY_ ;
-    // table[ kKeyAppMail ] = HID_KEY_ ;
-    // table[ kKeyAppMedia ] = HID_KEY_ ;
-    // table[ kKeyAppUser1 ] = HID_KEY_ ;
-    // table[ kKeyAppUser2 ] = HID_KEY_ ;
-    // table[ kKeyBrightnessDown ] = HID_USAGE_CONSUMER_BRIGHTNESS_DECREMENT;
-    // table[ kKeyBrightnessUp ] = HID_USAGE_CONSUMER_BRIGHTNESS_INCREMENT;
-    // table[ kKeyKbdBrightnessDown ] = HID_KEY_ ;
-    // table[ kKeyKbdBrightnessUp ] = HID_KEY_ ;
-    // table[ kKeyMissionControl ] = HID_KEY_ ;
-    // table[ kKeyLaunchpad ] = HID_KEY_ ;
+    // consumer_table[ kKeyEject ] = HID_USAGE_CONSUMER_EJECT ;
+    consumer_table[ kKeySleep ] = HID_USAGE_CONSUMER_SLEEP ;
+    consumer_table[ kKeyWWWBack ] = HID_USAGE_CONSUMER_AC_BACK ;
+    consumer_table[ kKeyWWWForward ] = HID_USAGE_CONSUMER_AC_FORWARD ;
+    consumer_table[ kKeyWWWRefresh ] = HID_USAGE_CONSUMER_AC_REFRESH ;
+    consumer_table[ kKeyWWWStop ] = HID_USAGE_CONSUMER_AC_STOP ;
+    consumer_table[ kKeyWWWSearch ] = HID_USAGE_CONSUMER_AC_SEARCH ;
+    consumer_table[ kKeyWWWFavorites ] = HID_USAGE_CONSUMER_AC_BOOKMARKS ;
+    consumer_table[ kKeyWWWHome ] = HID_USAGE_CONSUMER_AC_HOME ;
+    consumer_table[ kKeyAudioMute ] = HID_USAGE_CONSUMER_MUTE ;
+    consumer_table[ kKeyAudioDown ] = HID_USAGE_CONSUMER_VOLUME_DECREMENT ;
+    consumer_table[ kKeyAudioUp ] = HID_USAGE_CONSUMER_VOLUME_INCREMENT ;
+    consumer_table[ kKeyAudioNext ] = HID_USAGE_CONSUMER_SCAN_NEXT ;
+    consumer_table[ kKeyAudioPrev ] = HID_USAGE_CONSUMER_SCAN_PREVIOUS ;
+    consumer_table[ kKeyAudioStop ] = HID_USAGE_CONSUMER_STOP ;
+    consumer_table[ kKeyAudioPlay ] = HID_USAGE_CONSUMER_PLAY_PAUSE ;
+    consumer_table[ kKeyAppMail ] = HID_USAGE_CONSUMER_AL_EMAIL_READER ;
+    // consumer_table[ kKeyAppMedia ] = HID_USAGE_CONSUMER_ ;
+    // consumer_table[ kKeyAppUser1 ] = HID_KEY_ ;
+    // consumer_table[ kKeyAppUser2 ] = HID_KEY_ ;
+    consumer_table[ kKeyBrightnessDown ] = HID_USAGE_CONSUMER_BRIGHTNESS_DECREMENT;
+    consumer_table[ kKeyBrightnessUp ] = HID_USAGE_CONSUMER_BRIGHTNESS_INCREMENT;
+    // consumer_table[ kKeyKbdBrightnessDown ] = HID_USAGE_CONSUMER_ ;
+    // consumer_table[ kKeyKbdBrightnessUp ] = HID_USAGE_CONSUMER_ ;
+    // consumer_table[ kKeyMissionControl ] = HID_KEY_ ;
+    // consumer_table[ kKeyLaunchpad ] = HID_KEY_ ;
 
 
     // table[kKeyF1] = HID_KEY_F1;
@@ -755,9 +784,9 @@ int main() {
         printf("0x%02X,", table[i]);
     }
     printf("];\n");
-    printf("const MEDIA_TAB: [u8; 256] = [");
+    printf("const MEDIA_TAB: [u16; 256] = [");
     for (int i = 0xE000; i < 0xE100; i++) {
-        printf("0x%02X,", table[i]);
+        printf("0x%04X,", consumer_table[i]);
     }
     printf("];\n");
     return 0;

@@ -70,7 +70,9 @@ static const char *TAG = "USB";
  */
 const uint8_t hid_report_descriptor[] = {
     TUD_HID_REPORT_DESC_KEYBOARD(HID_REPORT_ID(HID_PROTOCOL_KEYBOARD)),
-    TUD_HID_REPORT_DESC_MOUSE_ABS(HID_REPORT_ID(HID_PROTOCOL_MOUSE))};
+    TUD_HID_REPORT_DESC_MOUSE_ABS(HID_REPORT_ID(HID_PROTOCOL_MOUSE)),
+    // TUD_HID_REPORT_DESC_CONSUMER(HID_REPORT_ID(3 /*REPORT_ID_CONSUMER_CONTROL*/ ))
+    };
 
 /**
  * @brief Configuration descriptor
@@ -82,7 +84,7 @@ static const uint8_t hid_configuration_descriptor[] = {
     TUD_CONFIG_DESCRIPTOR(1, 1, 0, TUSB_DESC_TOTAL_LEN, TUSB_DESC_CONFIG_ATT_REMOTE_WAKEUP, 100),
 
     // Interface number, string index, boot protocol, report descriptor len, EP In address, size & polling interval
-    TUD_HID_DESCRIPTOR(0, 0, false, sizeof(hid_report_descriptor), 0x81, 16, 10),
+    TUD_HID_DESCRIPTOR(0, 0, true, sizeof(hid_report_descriptor), 0x81, 16, 2),
 };
 
 /********* TinyUSB HID callbacks ***************/
@@ -144,7 +146,7 @@ void usb_util_abs_mouse_report(uint8_t buttons, uint16_t x, uint16_t y, int8_t w
     tud_hid_n_report(0, HID_PROTOCOL_MOUSE, &report, sizeof(report));
 }
 
-void usb_util_keyboard_report(uint8_t modifier, uint8_t* key_report)
+void usb_util_keyboard_report(uint8_t modifier, uint8_t *key_report)
 {
     if (!initialized)
     {
@@ -152,6 +154,17 @@ void usb_util_keyboard_report(uint8_t modifier, uint8_t* key_report)
         return;
     }
     tud_hid_keyboard_report(HID_PROTOCOL_KEYBOARD, modifier, key_report);
+}
+
+void usb_util_consumer_report(uint16_t code)
+{
+    if (!initialized)
+    {
+        ESP_LOGI(TAG, "Consumer code: %i", code);
+        return;
+    }
+    // 
+    // tud_hid_n_report(0, 3 /*HID_PROTOCOL_CONSUMER_CONTROL*/, &code, sizeof(code));
 }
 
 void usb_util_init(void)

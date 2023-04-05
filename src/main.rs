@@ -49,23 +49,6 @@ fn main() -> Result<()> {
     // Blue when connected to wifi
     set_led(RGB { r: 0, g: 0, b: 255 });
 
-    // let mut hue = unsafe { esp_random() } as u8;
-    // loop {
-    //     let pixels = std::iter::repeat(hsv2rgb(Hsv {
-    //         hue,
-    //         sat: 255,
-    //         val: 8,
-    //     }))
-    //     .take(25);
-    //     if let Ok(mut ws2812) = STATUS_LED.lock() {
-    //         ws2812.as_mut().unwrap().write(pixels).unwrap();
-    //     } 
-
-    //     sleep(Duration::from_millis(100));
-
-    //     hue = hue.wrapping_add(10);
-    // }
-
     let width = u16::from_str_radix(env!("SCREEN_WIDTH"), 10).unwrap();
     let height = u16::from_str_radix(env!("SCREEN_HEIGHT"), 10).unwrap();
     let mut actor = UsbHidActuator::new(width, height);
