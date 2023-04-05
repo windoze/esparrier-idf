@@ -8,7 +8,7 @@ use crate::{barrier::Actuator, keycodes::{synergy_to_hid, synergy_mouse_button},
 extern "C" {
     fn usb_util_init();
     fn usb_util_key_down(key: u8, button: u16);
-    fn usb_util_key_up(button: u16);
+    fn usb_util_key_up(key: u8, button: u16);
     fn usb_util_move_to_pos(x: u16, y: u16);
     fn usb_util_mouse_button(button: u8);
     fn usb_util_mouse_button_up(button: u8);
@@ -99,7 +99,7 @@ impl Actuator for UsbHidActuator {
     }
 
     fn key_down(&mut self, key: u16, mask: u16, button: u16) {
-        info!("Key down {key} {mask} {button}");
+        debug!("Key down {key} {mask} {button}");
         let hid = synergy_to_hid(key);
         if hid == 0 {
             warn!("Keycode not found");
@@ -111,15 +111,15 @@ impl Actuator for UsbHidActuator {
 
     fn key_repeat(&mut self, key: u16, mask: u16, button: u16, count: u16) {
         debug!("Key repeat {key} {mask} {button} {count}");
-        let hid = synergy_to_hid(key);
-        debug!("Keycode: {}", hid);
-        if hid == 0 {
-            warn!("Keycode not found");
-            return;
-        }
-        for _ in 0..count {
-            unsafe { usb_util_key_down(hid, button) }
-        }
+        // let hid = synergy_to_hid(key);
+        // debug!("Keycode: {}", hid);
+        // if hid == 0 {
+        //     warn!("Keycode not found");
+        //     return;
+        // }
+        // for _ in 0..count {
+        //     unsafe { usb_util_key_down(hid, button) }
+        // }
     }
 
     fn key_up(&mut self, key: u16, mask: u16, button: u16) {
@@ -130,7 +130,7 @@ impl Actuator for UsbHidActuator {
             warn!("Keycode not found");
             return;
         }
-        unsafe { usb_util_key_up(button) }
+        unsafe { usb_util_key_up(hid, button) }
     }
 
     fn set_options(&mut self, opts: std::collections::HashMap<String, u32>) {

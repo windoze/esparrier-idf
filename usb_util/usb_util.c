@@ -96,7 +96,7 @@ static const uint8_t hid_configuration_descriptor[] = {
     TUD_CONFIG_DESCRIPTOR(1, 1, 0, TUSB_DESC_TOTAL_LEN, TUSB_DESC_CONFIG_ATT_REMOTE_WAKEUP, 100),
 
     // Interface number, string index, boot protocol, report descriptor len, EP In address, size & polling interval
-    TUD_HID_DESCRIPTOR(0, 0, true, sizeof(hid_report_descriptor), 0x81, 16, 10),
+    TUD_HID_DESCRIPTOR(0, 0, false, sizeof(hid_report_descriptor), 0x81, 16, 10),
 };
 
 /********* TinyUSB HID callbacks ***************/
@@ -255,11 +255,6 @@ void usb_util_key_down(uint8_t key, uint16_t button)
     {
         return;
     }
-    if (server_button_state[button] == key)
-    {
-        // Key already pressed
-        return;
-    }
     server_button_state[button] = key;
 
     ESP_LOGD(TAG, "Got keydown for %i", key);
@@ -279,15 +274,15 @@ void usb_util_key_down(uint8_t key, uint16_t button)
     ESP_LOGD(TAG, "<<<< Key down");
     if (!initialized)
     {
+        ESP_LOGI(TAG, "Modifier: %i, Button [%i, %i, %i, %i, %i, %i]", get_modifier(), key_report[0], key_report[1], key_report[2], key_report[3], key_report[4], key_report[5]);
         return;
     }
     tud_hid_keyboard_report(HID_PROTOCOL_KEYBOARD, get_modifier(), key_report);
 }
 
-void usb_util_key_up(uint16_t button)
+void usb_util_key_up(uint8_t key, uint16_t button)
 {
     ESP_LOGD(TAG, ">>>> Key up");
-    uint8_t key = server_button_state[button];
     ESP_LOGD(TAG, "Key up: button: %i", button);
     server_button_state[button] = 0;
     for (int i = 0; i < 6; i++)
@@ -295,11 +290,10 @@ void usb_util_key_up(uint16_t button)
         if (key_report[i] == key)
         {
             key_report[i] = 0;
-            goto done;
         }
     }
-    ESP_LOGE(TAG, "Got keyup for key with no corresponding keydown? %i", key);
-done:
+    // ESP_LOGE(TAG, "Got keyup for key with no corresponding keydown? %i", key);
+
     for (int i = 0; i < 6; i++)
     {
         ESP_LOGD(TAG, "Button %i = %i", i, key_report[i]);
@@ -308,6 +302,7 @@ done:
 
     if (!initialized)
     {
+        ESP_LOGI(TAG, "Modifier: %i, Button [%i, %i, %i, %i, %i, %i]", get_modifier(), key_report[0], key_report[1], key_report[2], key_report[3], key_report[4], key_report[5]);
         return;
     }
 
