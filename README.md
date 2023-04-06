@@ -55,6 +55,6 @@ This program is only for testing purpose. It is not a complete implementation of
 ## TODO:
 
 - [ ] Support TLS
-- [ ] Support media keys
+- [x] Support media keys
 - [ ] Support Mac special keys
 - [ ] Support clipboard, maybe with a separate app running on the host to handle the clipboard data
