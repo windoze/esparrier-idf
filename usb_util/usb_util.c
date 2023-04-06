@@ -173,7 +173,7 @@ void usb_util_consumer_report(uint16_t code)
         return;
     }
     // 
-    tud_hid_n_report(0, REPORT_ID_CONSUMER_CONTROL, &code, 2);
+    tud_hid_n_report(0, RID_CONSUMER_CONTROL, &code, 2);
 }
 
 void usb_util_init(void)
