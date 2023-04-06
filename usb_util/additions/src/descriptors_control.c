@@ -172,11 +172,11 @@ uint16_t const *tud_descriptor_string_cb(uint8_t index, uint16_t langid)
  * @return uint8_t const*
  */
 #if CFG_TUD_HID
-uint8_t const *tud_hid_descriptor_report_cb(uint8_t itf)
-{
-    (void)itf;
-    return desc_hid_report;
-}
+// uint8_t const *tud_hid_descriptor_report_cb(uint8_t itf)
+// {
+//     (void)itf;
+//     return desc_hid_report;
+// }
 #endif
 
 // =============================================================================

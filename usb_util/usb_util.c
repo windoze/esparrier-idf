@@ -63,6 +63,12 @@ static const char *TAG = "USB";
 
 #define TUSB_DESC_TOTAL_LEN (TUD_CONFIG_DESC_LEN + CFG_TUD_HID * TUD_HID_DESC_LEN)
 
+enum {
+    RID_KEYBOARD = 1,
+    RID_MOUSE,
+    RID_CONSUMER_CONTROL,
+};
+
 /**
  * @brief HID report descriptor
  *
@@ -70,9 +76,9 @@ static const char *TAG = "USB";
  * so we must define both report descriptors
  */
 const uint8_t hid_report_descriptor[] = {
-    TUD_HID_REPORT_DESC_KEYBOARD(HID_REPORT_ID(REPORT_ID_KEYBOARD)),
-    TUD_HID_REPORT_DESC_MOUSE_ABS(HID_REPORT_ID(REPORT_ID_MOUSE)),
-    // TUD_HID_REPORT_DESC_CONSUMER(HID_REPORT_ID(REPORT_ID_CONSUMER_CONTROL))
+    TUD_HID_REPORT_DESC_KEYBOARD(HID_REPORT_ID(RID_KEYBOARD)),
+    TUD_HID_REPORT_DESC_MOUSE_ABS(HID_REPORT_ID(RID_MOUSE)),
+    TUD_HID_REPORT_DESC_CONSUMER(HID_REPORT_ID(RID_CONSUMER_CONTROL))
     };
 
 /**
@@ -92,10 +98,10 @@ static const uint8_t hid_configuration_descriptor[] = {
 
 // // Invoked when received GET HID REPORT DESCRIPTOR request
 // // Application return pointer to descriptor, whose contents must exist long enough for transfer to complete
-// uint8_t const *tud_hid_descriptor_report_cb(uint8_t instance) {
-//     // We use only one interface and one HID report descriptor, so we can ignore parameter 'instance'
-//     return hid_report_descriptor;
-// }
+uint8_t const *tud_hid_descriptor_report_cb(uint8_t instance) {
+    // We use only one interface and one HID report descriptor, so we can ignore parameter 'instance'
+    return hid_report_descriptor;
+}
 
 // Invoked when received GET_REPORT control request
 // Application must fill buffer report's content and return its length.
@@ -167,7 +173,7 @@ void usb_util_consumer_report(uint16_t code)
         return;
     }
     // 
-    // tud_hid_n_report(0, REPORT_ID_CONSUMER_CONTROL, &code, 2);
+    tud_hid_n_report(0, REPORT_ID_CONSUMER_CONTROL, &code, 2);
 }
 
 void usb_util_init(void)
