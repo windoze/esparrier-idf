@@ -1,10 +1,9 @@
-use std::{time::Duration, thread::sleep};
-
 use anyhow::Result;
+use const_env::from_env;
 use esp_idf_hal::prelude::Peripherals;
 use esp_idf_svc::eventloop::EspSystemEventLoop;
 use esp_idf_sys::{self as _, nvs_flash_init};
-use log::info;
+use log::{error, info};
 use smart_leds::RGB;
 use ws2812_esp32_rmt_driver::Ws2812Esp32Rmt;
 
@@ -12,12 +11,29 @@ mod barrier;
 mod usb_actor;
 mod utils;
 mod keycodes;
+mod reports;
 
 use utils::*;
 
 use crate::usb_actor::UsbHidActuator;
 
+pub const INIT_USB: bool = true;
+
+// Constants from env
+#[from_env("SCREEN_WIDTH")]
+const SCREEN_WIDTH: u16 = 1920;
+#[from_env("SCREEN_HEIGHT")]
+const SCREEN_HEIGHT: u16 = 1080;
+
+#[from_env("BARRIER_SERVER")]
+const BARRIER_SERVER: &'static str = "127.0.0.1";
+#[from_env("BARRIER_PORT")]
+const BARRIER_PORT: u16 = 24800;
+#[from_env("SCREEN_NAME")]
+const SCREEN_NAME: &'static str = "ESPARRIER";
+
 // M5Atom S3 Lite has a status NeoPixel on GPIO 35
+#[from_env("STATUS_LED_PIN")]
 const STATUS_LED_PIN: u32 = 35;
 
 fn main() -> Result<()> {
@@ -49,27 +65,18 @@ fn main() -> Result<()> {
     // Blue when connected to wifi
     set_led(RGB { r: 0, g: 0, b: 255 });
 
-    let width = u16::from_str_radix(env!("SCREEN_WIDTH"), 10).unwrap();
-    let height = u16::from_str_radix(env!("SCREEN_HEIGHT"), 10).unwrap();
-    let mut actor = UsbHidActuator::new(width, height);
+    let mut actor = UsbHidActuator::new(SCREEN_WIDTH, SCREEN_HEIGHT);
 
-    // Reconnect if disconnected
-    loop {
-        info!("Connecting to barrier...");
-        let server = env!("BARRIER_SERVER");
-        let port = u16::from_str_radix(env!("BARRIER_PORT"), 10).unwrap();
-        let name = env!("SCREEN_NAME");
-        match barrier::start(server, port, name, &mut actor) {
-            Ok(_) => {
-                info!("Connection closed");
-            }
-            Err(e) => {
-                info!("Connection failed: {}", e);
-            }
+    info!("Connecting to barrier...");
+    match barrier::start(BARRIER_SERVER, BARRIER_PORT, SCREEN_NAME, &mut actor) {
+        Ok(_) => {
+            error!("Connection closed");
         }
-        set_led(RGB { r: 0, g: 0, b: 255 });
-        sleep(Duration::from_millis(500));
+        Err(e) => {
+            error!("Connection failed: {}", e);
+        }
     }
+    set_led(RGB { r: 0, g: 0, b: 255 });
 
-    // Ok(())
+    panic!("Disconnected, restarting...")
 }

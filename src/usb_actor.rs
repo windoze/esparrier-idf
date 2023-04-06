@@ -6,195 +6,10 @@ use smart_leds::RGB;
 use crate::{
     barrier::Actuator,
     keycodes::{synergy_mouse_button, synergy_to_hid, KeyCode},
+    reports::{HidReport, HidReportType},
     utils::set_led,
+    INIT_USB,
 };
-
-const INIT_USB: bool = true;
-
-extern "C" {
-    fn usb_util_init();
-    fn usb_util_keyboard_report(modifier: u8, keycode: *const u8);
-    fn usb_util_abs_mouse_report(buttons: u8, x: u16, y: u16, wheel: i8, pan: i8);
-    fn usb_util_consumer_report(code: u16);
-}
-
-struct AbsMouseReport {
-    button: u8,
-    x: u16,
-    y: u16,
-}
-
-impl AbsMouseReport {
-    fn new() -> Self {
-        Self {
-            button: 0,
-            x: 0,
-            y: 0,
-        }
-    }
-
-    fn move_to(&mut self, x: u16, y: u16) {
-        self.x = x;
-        self.y = y;
-        self.send(None, None);
-    }
-
-    fn move_by(&mut self, x: i16, y: i16) {
-        self.x = self.x.wrapping_add(x as u16);
-        self.y = self.y.wrapping_add(y as u16);
-        self.send(None, None);
-    }
-
-    fn mouse_down(&mut self, button: u8) {
-        self.button |= button;
-        self.send(None, None);
-    }
-
-    fn mouse_up(&mut self, button: u8) {
-        self.button &= !button;
-        self.send(None, None);
-    }
-
-    fn mouse_wheel(&mut self, scroll: i8, pan: i8) {
-        self.send(scroll, pan);
-    }
-
-    fn clear(&mut self) {
-        self.button = 0;
-        // NOTE: Preserve the last position
-        // self.x = 0;
-        // self.y = 0;
-        self.send(None, None);
-    }
-
-    fn send<S: Into<Option<i8>>, P: Into<Option<i8>>>(&self, scroll: S, pan: P) {
-        // Scale the position to the screen size
-        unsafe {
-            usb_util_abs_mouse_report(
-                self.button,
-                self.x,
-                self.y,
-                scroll.into().unwrap_or_default(),
-                pan.into().unwrap_or_default(),
-            );
-        }
-    }
-}
-
-struct KeyReport<const N: usize> {
-    modifier: u8,
-    keycode: [u8; N],
-    consumer_control: u16,
-}
-
-impl<const N: usize> KeyReport<N> {
-    fn new() -> Self {
-        Self {
-            modifier: 0,
-            keycode: [0; N],
-            consumer_control: 0,
-        }
-    }
-
-    fn press_key(&mut self, key: KeyCode) {
-        match key {
-            KeyCode::Consumer(consumer) => {
-                self.consumer_control = consumer;
-                self.send_consumer();
-                return;
-            }
-            KeyCode::Key(key) => {
-                match self.get_modifier(key) {
-                    Some(modifier) => self.modifier |= modifier,
-                    None => {
-                        let mut found = false;
-                        for i in 0..N {
-                            if self.keycode[i] == 0 {
-                                self.keycode[i] = key;
-                                found = true;
-                                break;
-                            }
-                        }
-                        if !found {
-                            // roll over the first key
-                            for i in 1..N {
-                                self.keycode.swap(i - 1, i);
-                            }
-                            self.keycode[N - 1] = key;
-                        }
-                    }
-                }
-                self.send_key();
-            }
-            _ => return,
-        }
-    }
-
-    fn release_key(&mut self, key: KeyCode) {
-        match key {
-            KeyCode::Consumer(_consumer) => {
-                self.consumer_control = 0;
-                self.send_consumer();
-                return;
-            }
-            KeyCode::Key(key) => {
-                match self.get_modifier(key) {
-                    Some(modifier) => self.modifier &= !modifier,
-                    None => {
-                        for i in 0..N {
-                            if self.keycode[i] == key {
-                                self.keycode[i] = 0;
-                                break;
-                            }
-                        }
-                        // Compact the keycode array
-                        let mut pos = 0;
-                        for i in 0..N {
-                            if self.keycode[i] != 0 {
-                                self.keycode.swap(i, pos);
-                                pos += 1;
-                            }
-                        }
-                    }
-                }
-                self.send_key();
-            }
-            _ => (),
-        }
-    }
-
-    fn clear(&mut self) {
-        self.modifier = 0;
-        self.keycode = [0; N];
-        self.send_key();
-    }
-
-    fn send_consumer(&self) {
-        unsafe {
-            usb_util_consumer_report(self.consumer_control);
-        }
-    }
-
-    fn send_key(&self) {
-        unsafe {
-            usb_util_keyboard_report(self.modifier, self.keycode.as_ptr());
-        }
-    }
-
-    fn get_modifier(&self, key: u8) -> Option<u8> {
-        match key {
-            0xE0 => Some(0x01), // Left Control
-            0xE1 => Some(0x02), // Left Shift
-            0xE2 => Some(0x04), // Left Alt
-            0xE3 => Some(0x08), // Left GUI
-            0xE4 => Some(0x10), // Right Control
-            0xE5 => Some(0x20), // Right Shift
-            0xE6 => Some(0x40), // Right Alt
-            0xE7 => Some(0x80), // Right GUI
-            _ => None,
-        }
-    }
-}
 
 pub struct UsbHidActuator {
     pub width: u16,
@@ -206,17 +21,11 @@ pub struct UsbHidActuator {
     pub v_scroll_scale: f32,
     pub h_scroll_scale: f32,
 
-    mouse_report: AbsMouseReport,
-    key_report: KeyReport<6>,
+    hid_report: HidReport,
 }
 
 impl UsbHidActuator {
     pub fn new(width: u16, height: u16) -> Self {
-        if INIT_USB {
-            unsafe {
-                usb_util_init();
-            }
-        }
         Self {
             width,
             height,
@@ -226,8 +35,7 @@ impl UsbHidActuator {
             flip_mouse_wheel: env!("REVERSED_WHEEL").parse().unwrap_or(0),
             v_scroll_scale: env!("V_SCROLL_SCALE").parse().unwrap_or(1.0),
             h_scroll_scale: env!("H_SCROLL_SCALE").parse().unwrap_or(1.0),
-            mouse_report: AbsMouseReport::new(),
-            key_report: KeyReport::new(),
+            hid_report: HidReport::new(),
         }
     }
 }
@@ -248,27 +56,32 @@ impl Actuator for UsbHidActuator {
     }
 
     fn get_cursor_position(&self) -> (u16, u16) {
-        (self.mouse_report.x, self.mouse_report.y)
+        self.hid_report.get_mouse_position()
     }
 
     fn set_cursor_position(&mut self, x: u16, y: u16) {
         debug!("Set cursor position to {x} {y}");
-        self.mouse_report.move_to(x, y);
+        self.hid_report.send(HidReportType::MouseMove { x, y });
     }
 
     fn move_cursor(&mut self, x: i16, y: i16) {
         debug!("Move cursor by {x} {y}");
-        self.mouse_report.move_by(x, y);
+        self.hid_report
+            .send(HidReportType::MouseMoveRelative { x, y });
     }
 
     fn mouse_down(&mut self, button: i8) {
         debug!("Mouse down {button}");
-        self.mouse_report.mouse_down(synergy_mouse_button(button));
+        self.hid_report.send(HidReportType::MouseDown {
+            button: synergy_mouse_button(button),
+        });
     }
 
     fn mouse_up(&mut self, button: i8) {
         debug!("Mouse up {button}");
-        self.mouse_report.mouse_up(synergy_mouse_button(button));
+        self.hid_report.send(HidReportType::MouseUp {
+            button: synergy_mouse_button(button),
+        });
     }
 
     fn mouse_wheel(&mut self, x: i16, y: i16) {
@@ -280,9 +93,15 @@ impl Actuator for UsbHidActuator {
         let y = (y as f32 * self.v_scroll_scale / 120.0) as i16;
         debug!("Mouse wheel {x} {y}");
         if self.flip_mouse_wheel == 0 {
-            self.mouse_report.mouse_wheel(y as i8, x as i8);
+            self.hid_report.send(HidReportType::MouseWheel {
+                scroll: y as i8,
+                pan: x as i8,
+            });
         } else {
-            self.mouse_report.mouse_wheel(-y as i8, -x as i8);
+            self.hid_report.send(HidReportType::MouseWheel {
+                scroll: -y as i8,
+                pan: -x as i8,
+            });
         }
     }
 
@@ -298,7 +117,7 @@ impl Actuator for UsbHidActuator {
             warn!("Keycode not found");
             return;
         }
-        self.key_report.press_key(hid);
+        self.hid_report.send(HidReportType::KeyPress { key_code: hid });
     }
 
     fn key_repeat(&mut self, key: u16, mask: u16, button: u16, count: u16) {
@@ -318,7 +137,7 @@ impl Actuator for UsbHidActuator {
             warn!("Keycode not found");
             return;
         }
-        self.key_report.release_key(hid);
+        self.hid_report.send(HidReportType::KeyRelease { key_code: hid });
     }
 
     fn set_options(&mut self, opts: std::collections::HashMap<String, u32>) {
@@ -335,15 +154,13 @@ impl Actuator for UsbHidActuator {
         info!("Enter");
         // Lighter green
         set_led(RGB { r: 0, g: 64, b: 0 });
-        self.key_report.clear();
-        self.mouse_report.clear();
+        self.hid_report.clear();
     }
 
     fn leave(&mut self) {
         info!("Leave");
         // Dim yellow
         set_led(RGB { r: 40, g: 20, b: 0 });
-        self.key_report.clear();
-        self.mouse_report.clear();
+        self.hid_report.clear();
     }
 }

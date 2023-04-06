@@ -11,6 +11,7 @@
 #include "class/hid/hid.h"
 #include "class/hid/hid_device.h"
 #include "sdkconfig.h"
+#include "descriptors_control.h"
 
 // Mouse Report Descriptor Template
 #define TUD_HID_REPORT_DESC_MOUSE_ABS(...)                                                        \
@@ -69,9 +70,9 @@ static const char *TAG = "USB";
  * so we must define both report descriptors
  */
 const uint8_t hid_report_descriptor[] = {
-    TUD_HID_REPORT_DESC_KEYBOARD(HID_REPORT_ID(HID_PROTOCOL_KEYBOARD)),
-    TUD_HID_REPORT_DESC_MOUSE_ABS(HID_REPORT_ID(HID_PROTOCOL_MOUSE)),
-    // TUD_HID_REPORT_DESC_CONSUMER(HID_REPORT_ID(3 /*REPORT_ID_CONSUMER_CONTROL*/ ))
+    TUD_HID_REPORT_DESC_KEYBOARD(HID_REPORT_ID(REPORT_ID_KEYBOARD)),
+    TUD_HID_REPORT_DESC_MOUSE_ABS(HID_REPORT_ID(REPORT_ID_MOUSE)),
+    // TUD_HID_REPORT_DESC_CONSUMER(HID_REPORT_ID(REPORT_ID_CONSUMER_CONTROL))
     };
 
 /**
@@ -166,7 +167,7 @@ void usb_util_consumer_report(uint16_t code)
         return;
     }
     // 
-    // tud_hid_n_report(0, 3 /*HID_PROTOCOL_CONSUMER_CONTROL*/, &code, sizeof(code));
+    // tud_hid_n_report(0, REPORT_ID_CONSUMER_CONTROL, &code, 2);
 }
 
 void usb_util_init(void)

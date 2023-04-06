@@ -23,6 +23,7 @@ opt-level = "z"
 pio = ["esp-idf-sys/pio"]
 
 [dependencies]
+const_env = "0.1"
 anyhow = {version = "1", features = ["backtrace"]}
 thiserror = "1.0"
 log = "0.4"

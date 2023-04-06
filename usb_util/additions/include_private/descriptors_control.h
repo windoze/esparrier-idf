@@ -33,7 +33,8 @@ extern "C" {
 #if CFG_TUD_HID
 enum {
     REPORT_ID_KEYBOARD = 1,
-    REPORT_ID_MOUSE
+    REPORT_ID_MOUSE,
+    REPORT_ID_CONSUMER_CONTROL,
 };
 #endif
 
