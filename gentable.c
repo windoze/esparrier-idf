@@ -554,6 +554,8 @@ void init_synergy_hid_key_table() {
     table['"'] = HID_KEY_APOSTROPHE;
     table['.'] = HID_KEY_PERIOD;
     table[','] = HID_KEY_COMMA;
+    table['>'] = HID_KEY_PERIOD;
+    table['<'] = HID_KEY_COMMA;
     table['`'] = HID_KEY_GRAVE;
     table['~'] = HID_KEY_GRAVE;
     table['\\'] = HID_KEY_BACKSLASH;
