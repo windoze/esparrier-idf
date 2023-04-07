@@ -14,8 +14,7 @@ use embedded_svc::wifi::{AccessPointConfiguration, ClientConfiguration, Configur
 use smart_leds::{SmartLedsWrite, RGB};
 use ws2812_esp32_rmt_driver::{driver::color::LedPixelColorImpl, LedPixelEsp32Rmt};
 
-const SSID: &str = env!("WIFI_SSID");
-const PASS: &str = env!("WIFI_PASSWORD");
+use crate::settings::{get_wifi_ssid, get_wifi_password};
 
 pub static STATUS_LED: Mutex<
     Option<LedPixelEsp32Rmt<RGB<u8>, LedPixelColorImpl<3, 1, 0, 2, 255>>>,
@@ -35,26 +34,27 @@ pub fn wifi(
 
     let ap_infos = wifi.scan()?;
 
-    let ours = ap_infos.into_iter().find(|a| a.ssid == SSID);
+    let ssid = get_wifi_ssid();
+    let ours = ap_infos.into_iter().find(|a| a.ssid == ssid);
 
     let channel = if let Some(ours) = ours {
         info!(
             "Found configured access point {} on channel {}",
-            SSID, ours.channel
+            ssid, ours.channel
         );
         Some(ours.channel)
     } else {
         info!(
             "Configured access point {} not found during scanning, will go with unknown channel",
-            SSID
+            ssid
         );
         None
     };
 
     wifi.set_configuration(&Configuration::Mixed(
         ClientConfiguration {
-            ssid: SSID.into(),
-            password: PASS.into(),
+            ssid: ssid.into(),
+            password: get_wifi_password().into(),
             channel,
             ..Default::default()
         },

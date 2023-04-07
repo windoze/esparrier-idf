@@ -1,6 +1,12 @@
 /.vscode
 /.embuild
+/.idea
 /target
 /Cargo.lock
+/.venv
+
+# Ignore dev/test data
 .*.zsh
 .env*
+settings.csv.*
+

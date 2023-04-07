@@ -8,6 +8,7 @@ Esparrier is a [Barrier](https://github.com/debauchee/barrier) client for ESP32S
 1. Install Rust toolchain.
 2. Install Rust ESP32 tools:
     * `espup` - https://github.com/esp-rs/espup
+    * `ldproxy` - https://github.com/esp-rs/embuild
     * `cargo-espflash` - https://github.com/esp-rs/espflash
     * `espmonitor` - https://github.com/esp-rs/espmonitor
     * Install Rust ESP toolchain with `espup install`
@@ -22,7 +23,7 @@ Esparrier is a [Barrier](https://github.com/debauchee/barrier) client for ESP32S
         * `export SCREEN_NAME="SCREEN_NAME"`
         * `export SCREEN_WIDTH="SCREEN_WIDTH"`
         * `export SCREEN_HEIGHT="SCREEN_HEIGHT"`
-        * `export REVERSED_WHEEL="1 to reverse the mouse wheel, 0 to use the default"`
+        * `export REVERSED_WHEEL="true to reverse the mouse wheel, false to use the default"`
         * `export V_SCROLL_SCALE="FLOAT_NUMBER_TO_SCALE_VERTICAL_MOUSE_WHEEL e.g. 1.0"`
         * `export H_SCROLL_SCALE="FLOAT_NUMBER_TO_SCALE_HORIZONTAL_MOUSE_WHEEL e.g. 1.0"`
     2. Put your board in the download mode, then build and flash with `cargo run --release`. On M5Atom S3 Lite, you need to hold the reset button until the green LED turns on, then release the button. And you need to press the reset button again after flashing to exit the download mode.
@@ -35,6 +36,27 @@ Esparrier is a [Barrier](https://github.com/debauchee/barrier) client for ESP32S
 4. When Barrier enters the screen, the LED turns bright green, and when Barrier leaves the screen, the LED turns dim yellow.
 5. The board emulates a standard keyboard and an absolute mouse, it should work in any OS.
 6. USB HID boot protocol is used, so you should be able to use the board as a USB keyboard/mouse in BIOS/EFI or even if the OS doesn't have a driver for it.
+
+## Update Configurations
+
+First, you need to install some tools:
+
+* ESP-IDF: https://docs.espressif.com/projects/esp-idf/en/latest/esp32s3/get-started/index.html.
+* `esptool.py`: can be installed with `pip install esptool`.
+
+### Prepare and Update Configurations
+
+1. Create a CSV file, refer to [settings.csv](settings.csv) for the format. You need to retain **all** rows in the config file, only change the values in the right most column. Be aware that some keys have different values in the config file and the environment variables.
+    * The value `reversed_wheel` of is used to reverse the mouse wheel, `1` to reverse, `0` to use the default.
+    * The value `h_scroll_scale` and `v_scroll_scale` have scale of 100, `100` means `1` and `80` means `0.8`, etc.
+2. Use `nvs_partition_gen.py` comes with ESP-IDF to generate a partition table with NVS partition.
+    ```bash
+    python /PATH/TO/ESP-IDF/components/nvs_flash/nvs_partition_generator/nvs_partition_gen.py generate "YOUR_CSV_FILE.csv" settings.bin 0x6000
+    ```
+3. Use `esptool.py` to flash the NVS partition.
+    ```bash
+    esptool.py --chip esp32s3 --port /dev/ttyUSB0 --baud 921600 write_flash 0x9000 settings.bin
+    ```
 
 ## NOTES:
 
@@ -58,3 +80,6 @@ This program is only for testing purpose. It is not a complete implementation of
 - [x] Support media keys
 - [ ] Support Mac special keys
 - [ ] Support clipboard, maybe with a separate app running on the host to handle the clipboard data
+- [x] Re-configure without rebuilding
+- [ ] NVS encryption
+- [ ] OTA update
