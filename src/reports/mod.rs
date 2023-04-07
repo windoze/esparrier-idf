@@ -3,17 +3,20 @@ use log::warn;
 mod abs_mouse;
 mod consumer_control;
 mod keyboard;
+mod apple_ext;
 
 extern "C" {
     fn usb_util_init();
     fn usb_util_keyboard_report(modifier: u8, keycode: *const u8);
     fn usb_util_abs_mouse_report(buttons: u8, x: u16, y: u16, wheel: i8, pan: i8);
     fn usb_util_consumer_report(code: u16);
+    fn usb_util_apple_ext_report(code: u8);
 }
 
 use abs_mouse::AbsMouseReport;
 use consumer_control::ConsumerControlReport;
 use keyboard::KeyboardReport;
+use apple_ext::AppleExtReport;
 
 use crate::keycodes::KeyCode;
 
@@ -31,6 +34,7 @@ pub struct HidReport {
     mouse: AbsMouseReport,
     keyboard: KeyboardReport<6>,
     consumer_control: ConsumerControlReport,
+    apple_ext: AppleExtReport,
 }
 
 impl HidReport {
@@ -39,6 +43,7 @@ impl HidReport {
             mouse: AbsMouseReport::new(),
             keyboard: KeyboardReport::new(),
             consumer_control: ConsumerControlReport::new(),
+            apple_ext: AppleExtReport::new(),
         }
     }
 
@@ -60,11 +65,13 @@ impl HidReport {
                 KeyCode::None => (),
                 KeyCode::Consumer(code) => self.consumer_control.press(code),
                 KeyCode::Key(hid_key) => self.keyboard.press(hid_key),
+                KeyCode::AppleExt(code) => self.apple_ext.press(code),
             },
             HidReportType::KeyRelease { key_code } => match key_code {
                 KeyCode::None => (),
                 KeyCode::Consumer(_) => self.consumer_control.release(),
                 KeyCode::Key(hid_key) => self.keyboard.release(hid_key),
+                KeyCode::AppleExt(_) => self.apple_ext.release(),
             },
             HidReportType::MouseMove { x, y } => self.mouse.move_to(x, y),
             HidReportType::MouseMoveRelative { x, y } => self.mouse.move_by(x, y),
@@ -78,5 +85,6 @@ impl HidReport {
         self.mouse.clear();
         self.keyboard.clear();
         self.consumer_control.clear();
+        self.apple_ext.clear();
     }
 }

@@ -56,17 +56,40 @@
         HID_COLLECTION_END,                                                                       \
         HID_COLLECTION_END
 
-// #define APP_BUTTON (GPIO_NUM_0) // Use BOOT signal by default
 static const char *TAG = "USB";
+
+#define TUD_HID_REPORT_DESC_APPLE_EXT(...)                               \
+    0x05, 0x0c,     /* USAGE_PAGE (Consumer Devices) */                  \
+        0x09, 0x01, /* USAGE (consumer control) */                       \
+        0xA1, 0x01, /* COLLECTION (Application) */                       \
+        __VA_ARGS__ /*    REPORT ID */                                   \
+        0x06,                                                            \
+        0x01, 0xff, /*    USAGE_PAGE (Vendor-defined, Apple Keyboard) */ \
+        0x15, 0x00, /*    Logical min */                                 \
+        0x25, 0xf1, /*    Logical max */                                 \
+        0x75, 0x01, /*    Report size (1) */                             \
+        0x95, 0x08, /*    Report count (8) */                            \
+        0x09, 0x01, /*    Usage: Spotlight */                            \
+        0x09, 0x02, /*    Usage: Dashboard */                            \
+        0x09, 0x04, /*    Usage: Launchpad */                            \
+        0x09, 0x10, /*    Usage: Expose */                               \
+        0x09, 0x11, /*    Usage: Expose All */                           \
+        0x09, 0x21, /*    Usage: bright down */                          \
+        0x09, 0x20, /*    Usage: bright up */                            \
+        0x09, 0x30, /*    Usage: Language */                             \
+        0x81, 0x02, /*    INPUT data, var, abs */                        \
+        0xc0        /* End collection */
 
 /************* TinyUSB descriptors ****************/
 
 #define TUSB_DESC_TOTAL_LEN (TUD_CONFIG_DESC_LEN + CFG_TUD_HID * TUD_HID_DESC_LEN)
 
-enum {
+enum
+{
     RID_KEYBOARD = 1,
     RID_MOUSE,
     RID_CONSUMER_CONTROL,
+    RID_APPLE_EXT,
 };
 
 /**
@@ -78,8 +101,8 @@ enum {
 const uint8_t hid_report_descriptor[] = {
     TUD_HID_REPORT_DESC_KEYBOARD(HID_REPORT_ID(RID_KEYBOARD)),
     TUD_HID_REPORT_DESC_MOUSE_ABS(HID_REPORT_ID(RID_MOUSE)),
-    TUD_HID_REPORT_DESC_CONSUMER(HID_REPORT_ID(RID_CONSUMER_CONTROL))
-    };
+    TUD_HID_REPORT_DESC_CONSUMER(HID_REPORT_ID(RID_CONSUMER_CONTROL)),
+    // TUD_HID_REPORT_DESC_APPLE_EXT(HID_REPORT_ID(RID_APPLE_EXT))};
 
 /**
  * @brief Configuration descriptor
@@ -98,7 +121,8 @@ static const uint8_t hid_configuration_descriptor[] = {
 
 // // Invoked when received GET HID REPORT DESCRIPTOR request
 // // Application return pointer to descriptor, whose contents must exist long enough for transfer to complete
-uint8_t const *tud_hid_descriptor_report_cb(uint8_t instance) {
+uint8_t const *tud_hid_descriptor_report_cb(uint8_t instance)
+{
     // We use only one interface and one HID report descriptor, so we can ignore parameter 'instance'
     return hid_report_descriptor;
 }
@@ -172,8 +196,19 @@ void usb_util_consumer_report(uint16_t code)
         ESP_LOGI(TAG, "Consumer code: %i", code);
         return;
     }
-    // 
+    //
     tud_hid_n_report(0, RID_CONSUMER_CONTROL, &code, 2);
+}
+
+void usb_util_apple_ext_report(uint8_t code)
+{
+    if (!initialized)
+    {
+        ESP_LOGI(TAG, "Apple ext: %i", code);
+        return;
+    }
+    //
+    // tud_hid_n_report(0, RID_APPLE_EXT, &code, 1);
 }
 
 void usb_util_init(void)
