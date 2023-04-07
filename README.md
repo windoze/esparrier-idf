@@ -57,6 +57,7 @@ First, you need to install some tools:
     ```bash
     esptool.py --chip esp32s3 --port /dev/ttyUSB0 --baud 921600 write_flash 0x9000 settings.bin
     ```
+4. Exit the download mode and reset the board, the new configurations should be applied.
 
 ## NOTES:
 
