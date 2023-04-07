@@ -27,9 +27,8 @@ const_env = "0.1"
 anyhow = {version = "1", features = ["backtrace"]}
 thiserror = "1.0"
 log = "0.4"
-# esp-idf-sys = { version = "0.32.1", features = ["binstart"] }
+lazy_static = "1.4"
 esp-idf-sys = { version = "0.32.1", features = ["binstart"] }
-# esp-idf-svc = { git = "https://github.com/esp-rs/esp-idf-svc", features = [] }
 esp-idf-svc = { version = "0.45", features = [] }
 esp-idf-hal = "0.40"
 embedded-svc = { version = "0.24", features = [] }
@@ -44,8 +43,7 @@ anyhow = "1"
 
 [[package.metadata.esp-idf-sys.extra_components]]
 component_dirs = ["usb_util"]
-# component_dirs = ["usb_util", "tinyusb", "esp_tinyusb"]
-# # The bindgen is not usable until there is a new release of esp-idf-sys
-# # @see https://github.com/esp-rs/esp-idf-sys/issues/180
-# # bindings_header = "usb_util/usb_util.h"
-# # bindings_module = "usb_util"
+# The bindgen is not usable until there is a new release of esp-idf-sys
+# @see https://github.com/esp-rs/esp-idf-sys/issues/180
+# bindings_header = "usb_util/usb_util.h"
+# bindings_module = "usb_util"

@@ -12,25 +12,14 @@ mod usb_actor;
 mod utils;
 mod keycodes;
 mod reports;
+mod settings;
 
+use settings::*;
 use utils::*;
 
 use crate::usb_actor::UsbHidActuator;
 
 pub const INIT_USB: bool = true;
-
-// Constants from env
-#[from_env("SCREEN_WIDTH")]
-const SCREEN_WIDTH: u16 = 1920;
-#[from_env("SCREEN_HEIGHT")]
-const SCREEN_HEIGHT: u16 = 1080;
-
-#[from_env("BARRIER_SERVER")]
-const BARRIER_SERVER: &'static str = "127.0.0.1";
-#[from_env("BARRIER_PORT")]
-const BARRIER_PORT: u16 = 24800;
-#[from_env("SCREEN_NAME")]
-const SCREEN_NAME: &'static str = "ESPARRIER";
 
 // M5Atom S3 Lite has a status NeoPixel on GPIO 35
 #[from_env("STATUS_LED_PIN")]
@@ -65,10 +54,10 @@ fn main() -> Result<()> {
     // Blue when connected to wifi
     set_led(RGB { r: 0, g: 0, b: 255 });
 
-    let mut actor = UsbHidActuator::new(SCREEN_WIDTH, SCREEN_HEIGHT);
+    let mut actor = UsbHidActuator::new(get_screen_width(), get_screen_height());
 
     info!("Connecting to barrier...");
-    match barrier::start(BARRIER_SERVER, BARRIER_PORT, SCREEN_NAME, &mut actor) {
+    match barrier::start(get_barrier_server(), get_barrier_port(), get_screen_name(), &mut actor) {
         Ok(_) => {
             error!("Connection closed");
         }

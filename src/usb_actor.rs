@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use log::{debug, info, warn};
 use smart_leds::RGB;
+use crate::settings::*;
 
 use crate::{
     barrier::Actuator,
@@ -17,7 +18,7 @@ pub struct UsbHidActuator {
     pub x: u16,
     pub y: u16,
     pub options: HashMap<String, u32>,
-    pub flip_mouse_wheel: u8,
+    pub flip_mouse_wheel: bool,
     pub v_scroll_scale: f32,
     pub h_scroll_scale: f32,
 
@@ -32,9 +33,9 @@ impl UsbHidActuator {
             x: 0,
             y: 0,
             options: HashMap::new(),
-            flip_mouse_wheel: env!("REVERSED_WHEEL").parse().unwrap_or(0),
-            v_scroll_scale: env!("V_SCROLL_SCALE").parse().unwrap_or(1.0),
-            h_scroll_scale: env!("H_SCROLL_SCALE").parse().unwrap_or(1.0),
+            flip_mouse_wheel: get_reversed_wheel(),
+            v_scroll_scale: get_v_scroll_scale(),
+            h_scroll_scale: get_h_scroll_scale(),
             hid_report: HidReport::new(),
         }
     }
@@ -92,15 +93,15 @@ impl Actuator for UsbHidActuator {
         let x = (x as f32 * self.h_scroll_scale / 120.0) as i16;
         let y = (y as f32 * self.v_scroll_scale / 120.0) as i16;
         debug!("Mouse wheel {x} {y}");
-        if self.flip_mouse_wheel == 0 {
-            self.hid_report.send(HidReportType::MouseWheel {
-                scroll: y as i8,
-                pan: x as i8,
-            });
-        } else {
+        if self.flip_mouse_wheel {
             self.hid_report.send(HidReportType::MouseWheel {
                 scroll: -y as i8,
                 pan: -x as i8,
+            });
+        } else {
+            self.hid_report.send(HidReportType::MouseWheel {
+                scroll: y as i8,
+                pan: x as i8,
             });
         }
     }

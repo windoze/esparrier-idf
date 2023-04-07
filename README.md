@@ -58,3 +58,5 @@ This program is only for testing purpose. It is not a complete implementation of
 - [x] Support media keys
 - [ ] Support Mac special keys
 - [ ] Support clipboard, maybe with a separate app running on the host to handle the clipboard data
+- [ ] Re-configure without rebuilding
+- [ ] OTA update
