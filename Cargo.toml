@@ -47,3 +47,7 @@ component_dirs = ["usb_util"]
 # @see https://github.com/esp-rs/esp-idf-sys/issues/180
 # bindings_header = "usb_util/usb_util.h"
 # bindings_module = "usb_util"
+
+[package.metadata.espflash]
+partition_table = "partitions.csv" # Supports CSV and binary formats
+# format          = "direct-boot"    # Can be 'esp-bootloader' or 'direct-boot'

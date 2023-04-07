@@ -2,11 +2,11 @@ key,type,encoding,value
 settings,namespace,,
 ssid,data,string,<YOUR_WIFI_SSID>
 ssid,data,string,<YOUR_WIFI_PASSWORD>
-barrier_server,data,string,127.0.0.1
+barrier_server,data,string,<YOUR_BARRIER_SERVER_IP>
 barrier_port,data,u16,24800
-screen_name,data,string,ESPARRIER
+screen_name,data,string,<YOUR_SCREEN_NAME>
 screen_width,data,u16,1920
 screen_height,data,u16,1080
-reversed_mouse,data,u16,0
+reversed_wheel,data,u16,0
 v_scroll_scale,data,u16,100
 h_scroll_scale,data,u16,100
