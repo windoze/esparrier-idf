@@ -9,4 +9,5 @@
 .*.zsh
 .env*
 settings.csv.*
-
+*.bin
+*.img

@@ -46,6 +46,8 @@ impl Actuator for UsbHidActuator {
         info!("Connected");
         // Dim yellow
         set_led(RGB { r: 40, g: 20, b: 0 });
+        // Delay USB init until we're connected, make the code easier to debug
+        self.hid_report.init();
     }
 
     fn disconnected(&mut self) {

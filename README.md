@@ -53,7 +53,7 @@ First, you need to install some tools:
     ```bash
     python /PATH/TO/ESP-IDF/components/nvs_flash/nvs_partition_generator/nvs_partition_gen.py generate "YOUR_CSV_FILE.csv" settings.bin 0x6000
     ```
-3. Use `esptool.py` to flash the NVS partition.
+3. Put the board into the download mode, then use `esptool.py` to flash the NVS partition.
     ```bash
     esptool.py --chip esp32s3 --port /dev/ttyUSB0 --baud 921600 write_flash 0x9000 settings.bin
     ```
@@ -61,26 +61,25 @@ First, you need to install some tools:
 
 ## NOTES:
 
-This program is only for testing purpose. It is not a complete implementation of Barrier client. There could be a lot of bugs and missing features.
+**WARNING**: This program is only for testing purpose. It is not a complete implementation of Barrier client. There could be a lot of bugs and missing features. It has no concept of security, neither on the WiFi nor on the USB. It is not recommended to use it in anywhere but a private environment.
 
 * This code is developed and tested on [M5Atom S3 Lite](https://docs.m5stack.com/en/core/AtomS3%20Lite), other ESP32S3 boards may not work, or you need to change the code.
 * The code should be working on ESP32S2, but some changes may be needed. It won't work on ESP8266/ESP32/ESP32C3 because they don't have required USB features.
 * It doesn't support TLS, so you must run Barrier server without TLS.
 * The mouse is configured to the absolute mode, you must set the correct screen resolution before building, otherwise the mouse may not work properly.
 * Clipboard, file transfer, and cross-screen drag and drop are not supported due to the technical limitation, there is no way a standard USB HID device can do that, maybe an auxiliary app running on the host can help but I still don't have clear idea.
-* Auto-switching doesn't work sometimes, you may need to configure hotkey on the Barrier server to switch screens manually.
-* Media keys and Mac special keys are WIP, they need another Consumer Control device in addition to the HID keyboard/mouse.
+* Auto-switching doesn't work properly unless you set the screen size correctly, otherwise you may need to configure hotkey on the Barrier server to switch screens manually.
 * Frequently connect/disconnect may cause the board fail to connect to the WiFi and/or Barrier server, you may need to power off the board and wait for a while before trying again.
 * In theory the board should be working with [InputLeap](https://github.com/input-leap/input-leap) server as well but I've never tested it.
 * The USB VID/PID are randomly picked and not registered, so you may need to change the code to use your own VID/PID.
-* The USB device is initialized *after* the board successfully connects to the WiFi and Barrier server, it may be too late to use the board as a USB keyboard/mouse in BIOS/EFI, some main board that has always-on USB ports may work, but I haven't tested it, or you can use a USB hub that can supply power even if the host is off.
+* The program can accept inputs only **after** the board successfully connects to the WiFi and Barrier server, it may be too late to use the board as a USB keyboard/mouse in BIOS/EFI, some main board that has always-on USB ports may work, but I haven't tested it, or you can use a USB hub that can supply power even if the host is off.
 
 ## TODO:
 
-- [ ] Support TLS
 - [x] Support media keys
-- [ ] Support Mac special keys
-- [ ] Support clipboard, maybe with a separate app running on the host to handle the clipboard data
 - [x] Re-configure without rebuilding
+- [ ] Support Mac special keys
+- [ ] Support TLS
 - [ ] NVS encryption
 - [ ] OTA update
+- [ ] Support clipboard, maybe with a separate app running on the host to handle the clipboard data

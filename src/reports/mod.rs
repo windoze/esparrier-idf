@@ -35,15 +35,18 @@ pub struct HidReport {
 
 impl HidReport {
     pub fn new() -> Self {
-        if crate::INIT_USB {
-            unsafe { usb_util_init() }
-        } else {
-            warn!("Skipping USB init")
-        }
         Self {
             mouse: AbsMouseReport::new(),
             keyboard: KeyboardReport::new(),
             consumer_control: ConsumerControlReport::new(),
+        }
+    }
+
+    pub fn init(&mut self) {
+        if crate::INIT_USB {
+            unsafe { usb_util_init() }
+        } else {
+            warn!("Skipping USB init")
         }
     }
 
