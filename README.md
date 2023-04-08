@@ -9,7 +9,7 @@ Esparrier is a [Barrier](https://github.com/debauchee/barrier) client for ESP32S
 2. Install Rust ESP32 tools:
     * `espup` - https://github.com/esp-rs/espup
     * `ldproxy` - https://github.com/esp-rs/embuild
-    * `cargo-espflash` - https://github.com/esp-rs/espflash
+    * `cargo-espflash` - https://github.com/esp-rs/espflash, require version >= 2.0.0rc3
     * `espmonitor` - https://github.com/esp-rs/espmonitor
     * Install Rust ESP toolchain with `espup install`
 3. Set environment variable for Rust ESP toolchain:
