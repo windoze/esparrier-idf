@@ -1,4 +1,4 @@
-use std::sync::mpsc::SyncSender;
+use std::sync::{mpsc::SyncSender, Mutex};
 
 use anyhow::Result;
 use barrier::ActMsg;
@@ -6,6 +6,8 @@ use const_env::from_env;
 use esp_idf_hal::prelude::Peripherals;
 use esp_idf_svc::eventloop::EspSystemEventLoop;
 use esp_idf_sys::{self as _, nvs_flash_init};
+use keycodes::ASCII_2_HID;
+use lazy_static::lazy_static;
 use log::{error, info};
 use smart_leds::RGB;
 use ws2812_esp32_rmt_driver::Ws2812Esp32Rmt;
@@ -24,11 +26,15 @@ use utils::*;
 
 use crate::{barrier::ThreadedActuator, usb_actor::UsbHidActuator};
 
-pub const INIT_USB: bool = false;
+pub const INIT_USB: bool = true;
 
 // M5Atom S3 Lite has a status NeoPixel on GPIO 35
 #[from_env("STATUS_LED_PIN")]
 const STATUS_LED_PIN: u32 = 35;
+
+lazy_static! {
+    static ref CLIPBOARD: Mutex<Vec<u8>> = Mutex::new(vec![]);
+}
 
 fn main() -> Result<()> {
     // It is necessary to call this function once. Otherwise some patches to the runtime
@@ -64,7 +70,7 @@ fn main() -> Result<()> {
     let actor = UsbHidActuator::new(screen_width, screen_height);
     let mut actor = ThreadedActuator::new(screen_width, screen_height, actor);
 
-    let b = TestButton {
+    let b = PasteButton {
         tx: actor.get_sender(),
     };
 
@@ -89,42 +95,46 @@ fn main() -> Result<()> {
     panic!("Disconnected, restarting...")
 }
 
-struct TestButton {
+struct PasteButton {
     tx: SyncSender<ActMsg>,
 }
 
-impl ButtonCallback for TestButton {
+impl PasteButton {
+    fn send_char(&self, c: char) {
+        if c > 0x7F as char {
+            return;
+        }
+        let byte = c as u8;
+        let [k, m] = ASCII_2_HID[byte as usize];
+        if k == 0 {
+            return;
+        }
+        if m != 0 {
+            self.tx.send(ActMsg::HidKeyDown { key: m }).ok();
+            self.tx.send(ActMsg::HidKeyDown { key: k }).ok();
+            self.tx.send(ActMsg::HidKeyUp { key: k }).ok();
+            self.tx.send(ActMsg::HidKeyUp { key: m }).ok();
+        } else {
+            self.tx.send(ActMsg::HidKeyDown { key: k }).ok();
+            self.tx.send(ActMsg::HidKeyUp { key: k }).ok();
+        }
+    }
+}
+
+impl ButtonCallback for PasteButton {
     fn on_button_event(&mut self, state: ButtonState) {
         match state {
             ButtonState::Up => {}
             ButtonState::Down => {
-                if state == ButtonState::Down {
-                    self.tx.send(ActMsg::KeyDown {
-                        key: 0x61,
-                        mask: 0,
-                        button: 123,
-                    }).unwrap();
-                    self.tx.send(ActMsg::KeyUp {
-                        key: 0x61,
-                        mask: 0,
-                        button: 123,
-                    }).unwrap();
+                let s = {
+                    let data = CLIPBOARD.lock().unwrap();
+                    String::from_utf8_lossy(&data).to_string()
+                };
+                for c in s.chars() {
+                    self.send_char(c);
                 }
             }
-            ButtonState::Held => {
-                if state == ButtonState::Down {
-                    self.tx.send(ActMsg::KeyDown {
-                        key: 0x62,
-                        mask: 0,
-                        button: 124,
-                    }).unwrap();
-                    self.tx.send(ActMsg::KeyUp {
-                        key: 0x62,
-                        mask: 0,
-                        button: 124,
-                    }).unwrap();
-                }        
-            }
+            ButtonState::Held => {}
         }
     }
 }

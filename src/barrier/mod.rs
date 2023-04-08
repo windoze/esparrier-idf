@@ -4,7 +4,7 @@ mod error;
 mod packet;
 mod packet_io;
 mod packet_stream;
-mod clipboard_stash;
+mod clipboard;
 mod thread_act;
 
 pub use error::{ConnectionError, PacketError};

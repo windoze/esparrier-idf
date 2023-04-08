@@ -37,6 +37,20 @@ Esparrier is a [Barrier](https://github.com/debauchee/barrier) client for ESP32S
 5. The board emulates a standard keyboard and an absolute mouse, it should work in any OS.
 6. USB HID boot protocol is used, so you should be able to use the board as a USB keyboard/mouse in BIOS/EFI or even if the OS doesn't have a driver for it.
 
+## Clipboard
+
+The program now has limited support of the clipboard.
+
+First you need to activate other screen and copy something into the clipboard, then switch to the screen connected to the board.
+
+When the screen is activated, the board receives the clipboard content sent by the Barrier server, **keeps the first 1024 characters of the plain text format and discard everything else**.
+
+Then you can "paste" the text by pressing the button on the board, the board will convert the text into a sequence of keystrokes, and send them to the computer. All characters except the visible ASCII codes will be discarded as they cannot be directly mapped to USB HID key codes, or they may have special meaning that can mess up things.
+
+The program cannot "copy" content to the clipboard.
+
+Better clipboard support is still WIP.
+
 ## Update Configurations
 
 First, you need to install some tools:

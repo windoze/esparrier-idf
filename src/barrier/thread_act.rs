@@ -53,6 +53,12 @@ pub enum ActMsg {
     ResetOptions,
     Enter,
     Leave,
+    HidKeyDown {
+        key: u8,
+    },
+    HidKeyUp {
+        key: u8,
+    }
 }
 
 pub struct ThreadedActuator<T> {
@@ -68,32 +74,38 @@ impl<T: Actuator + Send + 'static> ThreadedActuator<T> {
     pub fn new(screen_width: u16, screen_height: u16, mut actuator: T) -> Self {
         let (tx, rx) = sync_channel(16);
         let builder = thread::Builder::new().stack_size(16384);
-        builder.spawn(move || {
-            while let Ok(msg) = rx.recv() {
-                match msg {
-                    ActMsg::Connected => actuator.connected(),
-                    ActMsg::Disconnected => actuator.disconnected(),
-                    ActMsg::SetCursorPosition { x, y } => actuator.set_cursor_position(x, y),
-                    ActMsg::MoveCursor { x, y } => actuator.move_cursor(x, y),
-                    ActMsg::MouseDown { button } => actuator.mouse_down(button),
-                    ActMsg::MouseUp { button } => actuator.mouse_up(button),
-                    ActMsg::MouseWheel { x, y } => actuator.mouse_wheel(x, y),
-                    ActMsg::KeyDown { key, mask, button } => actuator.key_down(key, mask, button),
-                    ActMsg::KeyRepeat {
-                        key,
-                        mask,
-                        button,
-                        count,
-                    } => actuator.key_repeat(key, mask, button, count),
-                    ActMsg::KeyUp { key, mask, button } => actuator.key_up(key, mask, button),
-                    ActMsg::SetClipboard { data } => actuator.set_clipboard(data),
-                    ActMsg::SetOptions { opts } => actuator.set_options(opts),
-                    ActMsg::ResetOptions => actuator.reset_options(),
-                    ActMsg::Enter => actuator.enter(),
-                    ActMsg::Leave => actuator.leave(),
+        builder
+            .spawn(move || {
+                while let Ok(msg) = rx.recv() {
+                    match msg {
+                        ActMsg::Connected => actuator.connected(),
+                        ActMsg::Disconnected => actuator.disconnected(),
+                        ActMsg::SetCursorPosition { x, y } => actuator.set_cursor_position(x, y),
+                        ActMsg::MoveCursor { x, y } => actuator.move_cursor(x, y),
+                        ActMsg::MouseDown { button } => actuator.mouse_down(button),
+                        ActMsg::MouseUp { button } => actuator.mouse_up(button),
+                        ActMsg::MouseWheel { x, y } => actuator.mouse_wheel(x, y),
+                        ActMsg::KeyDown { key, mask, button } => {
+                            actuator.key_down(key, mask, button)
+                        }
+                        ActMsg::KeyRepeat {
+                            key,
+                            mask,
+                            button,
+                            count,
+                        } => actuator.key_repeat(key, mask, button, count),
+                        ActMsg::KeyUp { key, mask, button } => actuator.key_up(key, mask, button),
+                        ActMsg::SetClipboard { data } => actuator.set_clipboard(data),
+                        ActMsg::SetOptions { opts } => actuator.set_options(opts),
+                        ActMsg::ResetOptions => actuator.reset_options(),
+                        ActMsg::Enter => actuator.enter(),
+                        ActMsg::Leave => actuator.leave(),
+                        ActMsg::HidKeyDown { key } => actuator.hid_key_down(key),
+                        ActMsg::HidKeyUp { key } => actuator.hid_key_up(key),
+                    }
                 }
-            }
-        }).expect("Failed to create actuator thread");
+            })
+            .expect("Failed to create actuator thread");
 
         Self {
             screen_width,
@@ -172,8 +184,8 @@ impl<T: Actuator + Send + 'static> Actuator for ThreadedActuator<T> {
         self.send(ActMsg::KeyUp { key, mask, button })
     }
 
-    fn set_clipboard(&mut self, data: Vec<u8>){
-
+    fn set_clipboard(&mut self, data: Vec<u8>) {
+        self.send(ActMsg::SetClipboard { data })
     }
 
     fn set_options(&mut self, opts: HashMap<String, u32>) {
@@ -190,5 +202,13 @@ impl<T: Actuator + Send + 'static> Actuator for ThreadedActuator<T> {
 
     fn leave(&mut self) {
         self.send(ActMsg::Leave)
+    }
+
+    fn hid_key_down(&mut self, key: u8) {
+        self.send(ActMsg::HidKeyDown { key })
+    }
+
+    fn hid_key_up(&mut self, key: u8) {
+        self.send(ActMsg::HidKeyUp { key })
     }
 }

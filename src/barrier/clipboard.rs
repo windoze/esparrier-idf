@@ -33,14 +33,14 @@ const MAX_SIZE: usize = 1024;
  * ClipboardStash keeps only text format with size limit
  */
 #[derive(Debug, Default)]
-pub struct ClipboardStash {
+pub struct Clipboard {
     pub state: States,
     pub num_format: u32,
     pub current_index: u32,
     data: Vec<(ClipboardFormat, Vec<u8>)>,
 }
 
-impl ClipboardStash {
+impl Clipboard {
     pub fn feed(&mut self, chunk: &[u8]) {
         for b in chunk {
             self.state = match self.state {

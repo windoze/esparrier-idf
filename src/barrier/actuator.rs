@@ -34,4 +34,8 @@ pub trait Actuator {
     fn enter(&mut self);
 
     fn leave(&mut self);
+
+    fn hid_key_down(&mut self, key: u8);
+
+    fn hid_key_up(&mut self, key: u8);
 }

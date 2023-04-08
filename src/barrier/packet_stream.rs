@@ -2,7 +2,7 @@ use std::{collections::HashMap, cmp::min};
 
 use log::debug;
 
-use crate::barrier::clipboard_stash::ClipboardStash;
+use crate::barrier::clipboard::Clipboard;
 
 use super::{PacketReader, PacketWriter, PacketError, Packet};
 
@@ -79,12 +79,11 @@ impl<S: PacketReader + PacketWriter> PacketStream<S> {
                 // mark 2 is the actual data
                 // mark 3 is an empty chunk
                 let data = if mark == 2 {
-                    let mut c = ClipboardStash::default();
+                    let mut c = Clipboard::default();
                     let mut sz = self.stream.read_u32()? as usize;
                     let mut buf: [u8; 16] = [0; 16];
                     while sz > 0 {
                         let l = self.stream.read(&mut buf[0..min(16, sz)])?;
-                        println!("{:?}", &buf[0..l]);
                         c.feed(&buf[0..l]);
                         sz -= l;
                     }

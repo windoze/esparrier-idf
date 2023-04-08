@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::settings::*;
+use crate::{settings::*, CLIPBOARD};
 use log::{debug, info, warn};
 use smart_leds::RGB;
 
@@ -121,9 +121,9 @@ impl Actuator for UsbHidActuator {
         self.server_buttons[button as usize] = key;
         let hid = synergy_to_hid(key);
         if INIT_USB {
-            debug!("Key {:#04x} -> Keycode: {:?}", key, hid);
+            debug!("Key Down {:#04x} -> Keycode: {:?}", key, hid);
         } else {
-            info!("Key {:#04x} -> Keycode: {:?}", key, hid);
+            info!("Key Down {:#04x} -> Keycode: {:?}", key, hid);
         }
         if matches!(hid, KeyCode::None) {
             warn!("Keycode not found");
@@ -149,9 +149,9 @@ impl Actuator for UsbHidActuator {
         }
         let hid = synergy_to_hid(key);
         if INIT_USB {
-            debug!("Key {:#04x} -> Keycode: {:?}", key, hid);
+            debug!("Key Up {:#04x} -> Keycode: {:?}", key, hid);
         } else {
-            info!("Key {:#04x} -> Keycode: {:?}", key, hid);
+            info!("Key Up {:#04x} -> Keycode: {:?}", key, hid);
         }
         if matches!(hid, KeyCode::None) {
             warn!("Keycode not found");
@@ -161,8 +161,9 @@ impl Actuator for UsbHidActuator {
             .send(HidReportType::KeyRelease { key_code: hid });
     }
 
-    fn set_clipboard(&mut self, data: Vec<u8>) {
+    fn set_clipboard(&mut self, mut data: Vec<u8>) {
         info!("Clipboard: {}", String::from_utf8_lossy(&data));
+        std::mem::swap(CLIPBOARD.lock().unwrap().as_mut(), &mut data);
     }
 
     fn set_options(&mut self, opts: std::collections::HashMap<String, u32>) {
@@ -187,5 +188,15 @@ impl Actuator for UsbHidActuator {
         // Dim yellow
         set_led(RGB { r: 40, g: 20, b: 0 });
         self.clear();
+    }
+
+    fn hid_key_down(&mut self, key: u8) {
+        self.hid_report
+            .send(HidReportType::KeyPress { key_code: KeyCode::Key(key) });
+    }
+
+    fn hid_key_up(&mut self, key: u8) {
+        self.hid_report
+            .send(HidReportType::KeyRelease { key_code: KeyCode::Key(key) });
     }
 }
