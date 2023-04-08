@@ -17,6 +17,13 @@ impl<const N: usize> KeyboardReport<N> {
         match self.get_modifier(key) {
             Some(modifier) => self.modifier |= modifier,
             None => {
+                // Don't add the same key twice
+                for i in 0..N {
+                    if self.keycode[i] == key {
+                        return;
+                    }
+                }
+
                 let mut found = false;
                 for i in 0..N {
                     if self.keycode[i] == 0 {
