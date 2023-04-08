@@ -23,6 +23,7 @@ pub struct UsbHidActuator {
     pub h_scroll_scale: f32,
 
     hid_report: HidReport,
+    server_buttons: [u16; 512],
 }
 
 impl UsbHidActuator {
@@ -37,7 +38,14 @@ impl UsbHidActuator {
             v_scroll_scale: get_v_scroll_scale(),
             h_scroll_scale: get_h_scroll_scale(),
             hid_report: HidReport::new(),
+            server_buttons: [0; 512],
         }
+    }
+
+    fn clear(&mut self) {
+        info!("Clear");
+        self.hid_report.clear();
+        self.server_buttons.fill(0);
     }
 }
 
@@ -110,6 +118,7 @@ impl Actuator for UsbHidActuator {
 
     fn key_down(&mut self, key: u16, mask: u16, button: u16) {
         debug!("Key down {key} {mask} {button}");
+        self.server_buttons[button as usize] = key;
         let hid = synergy_to_hid(key);
         if INIT_USB {
             debug!("Key {:#04x} -> Keycode: {:?}", key, hid);
@@ -128,8 +137,15 @@ impl Actuator for UsbHidActuator {
         debug!("Key repeat {key} {mask} {button} {count}");
     }
 
-    fn key_up(&mut self, key: u16, mask: u16, button: u16) {
-        debug!("Key up {key} {mask} {button}");
+    fn key_up(&mut self, _key: u16, mask: u16, button: u16) {
+        debug!("Key up {_key} {mask} {button}");
+        let key = self.server_buttons[button as usize];
+        if self.server_buttons[button as usize] != 0 {
+            debug!("Key {key} up");
+            self.server_buttons[button as usize] = 0;
+        } else {
+            warn!("Key {key} up with no key down");
+        }
         let hid = synergy_to_hid(key);
         if INIT_USB {
             debug!("Key {:#04x} -> Keycode: {:?}", key, hid);
@@ -157,13 +173,13 @@ impl Actuator for UsbHidActuator {
         info!("Enter");
         // Lighter green
         set_led(RGB { r: 0, g: 64, b: 0 });
-        self.hid_report.clear();
+        self.clear();
     }
 
     fn leave(&mut self) {
         info!("Leave");
         // Dim yellow
         set_led(RGB { r: 40, g: 20, b: 0 });
-        self.hid_report.clear();
+        self.clear();
     }
 }
