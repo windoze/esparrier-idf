@@ -97,8 +97,15 @@ pub fn start<A: Actuator>(
             Packet::CursorLeave => {
                 actor.leave();
             }
+            Packet::SetClipboard {
+                id: _,
+                seq_num: _,
+                mark: _,
+                data,
+            } => {
+                data.map(|data| actor.set_clipboard(data));
+            }
             Packet::GrabClipboard { .. } => {}
-            Packet::SetClipboard { .. } => {}
             Packet::DeviceInfo { .. } | Packet::ErrorUnknownDevice | Packet::ClientNoOp => {
                 // Server only packets
             }

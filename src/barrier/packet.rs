@@ -29,7 +29,7 @@ pub enum Packet {
         id: u8,
         seq_num: u32,
         mark: u8,
-        data: Vec<u8>,
+        data: Option<Vec<u8>>,
     },
     CursorEnter {
         x: u16,

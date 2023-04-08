@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
+use crate::settings::*;
 use log::{debug, info, warn};
 use smart_leds::RGB;
-use crate::settings::*;
 
 use crate::{
     barrier::Actuator,
@@ -129,7 +129,8 @@ impl Actuator for UsbHidActuator {
             warn!("Keycode not found");
             return;
         }
-        self.hid_report.send(HidReportType::KeyPress { key_code: hid });
+        self.hid_report
+            .send(HidReportType::KeyPress { key_code: hid });
     }
 
     fn key_repeat(&mut self, key: u16, mask: u16, button: u16, count: u16) {
@@ -156,7 +157,12 @@ impl Actuator for UsbHidActuator {
             warn!("Keycode not found");
             return;
         }
-        self.hid_report.send(HidReportType::KeyRelease { key_code: hid });
+        self.hid_report
+            .send(HidReportType::KeyRelease { key_code: hid });
+    }
+
+    fn set_clipboard(&mut self, data: Vec<u8>) {
+        info!("Clipboard: {}", String::from_utf8_lossy(&data));
     }
 
     fn set_options(&mut self, opts: std::collections::HashMap<String, u32>) {
