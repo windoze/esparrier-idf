@@ -1,6 +1,8 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, cmp::min};
 
 use log::debug;
+
+use crate::barrier::clipboard::Clipboard;
 
 use super::{PacketReader, PacketWriter, PacketError, Packet};
 
@@ -73,10 +75,25 @@ impl<S: PacketReader + PacketWriter> PacketStream<S> {
                 let seq_num = self.stream.read_u32()?;
                 let mark = self.stream.read_u8()?;
 
-                // NOTE: Do not save clipboard content as MCU doesn't have enough memory
-                // let data = self.stream.read_bytes()?;
-                self.stream.consume_bytes()?;
-                let data = Vec::new();
+                // mark 1 is a length string in ASCII
+                // mark 2 is the actual data
+                // mark 3 is an empty chunk
+                let data = if mark == 2 {
+                    let mut c = Clipboard::default();
+                    let mut sz = self.stream.read_u32()? as usize;
+                    let mut buf: [u8; 16] = [0; 16];
+                    while sz > 0 {
+                        let l = self.stream.read(&mut buf[0..min(16, sz)])?;
+                        c.feed(&buf[0..l]);
+                        sz -= l;
+                    }
+                    debug!("ClipboardStash State: {:?}, NumFormats: {}, CurrentIndex: {}", c.state, c.num_format, c.current_index);
+                    assert!(c.ended());
+                    c.into_data()
+                } else {
+                    self.stream.consume_bytes()?;
+                    None
+                };
                 
                 Packet::SetClipboard {
                     id,

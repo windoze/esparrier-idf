@@ -4,6 +4,8 @@ mod error;
 mod packet;
 mod packet_io;
 mod packet_stream;
+mod clipboard;
+mod thread_act;
 
 pub use error::{ConnectionError, PacketError};
 pub use packet::Packet;
@@ -11,6 +13,7 @@ pub use packet_io::{PacketReader, PacketWriter};
 pub use packet_stream::PacketStream;
 pub use actuator::Actuator;
 pub use client::start;
+pub use thread_act::{ActMsg, ThreadedActuator};
 
 #[cfg(test)]
 mod tests {

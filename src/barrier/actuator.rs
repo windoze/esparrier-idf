@@ -25,6 +25,8 @@ pub trait Actuator {
 
     fn key_up(&mut self, key: u16, mask: u16, button: u16);
 
+    fn set_clipboard(&mut self, data: Vec<u8>);
+
     fn set_options(&mut self, opts: HashMap<String, u32>);
 
     fn reset_options(&mut self);
@@ -32,4 +34,8 @@ pub trait Actuator {
     fn enter(&mut self);
 
     fn leave(&mut self);
+
+    fn hid_key_down(&mut self, key: u8);
+
+    fn hid_key_up(&mut self, key: u8);
 }
