@@ -96,7 +96,5 @@ fn button_task<F: ButtonCallback>(pin: gpio::AnyInputPin, mut call_back: F) {
 }
 
 pub fn start_button_task<F: ButtonCallback + Send + 'static>(pin: gpio::AnyInputPin, call_back: F) {
-    let _ = thread::spawn(move || {
-        button_task(pin, call_back)
-    });
+    let _ = thread::spawn(move || button_task(pin, call_back));
 }
