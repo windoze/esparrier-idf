@@ -1,14 +1,12 @@
 use std::collections::HashMap;
 
-use crate::{settings::*, CLIPBOARD};
+use crate::{settings::*, CLIPBOARD, status::{set_status, Status}};
 use log::{debug, info, warn};
-use smart_leds::RGB;
 
 use crate::{
     barrier::Actuator,
     keycodes::{synergy_mouse_button, synergy_to_hid, KeyCode},
     reports::{HidReport, HidReportType},
-    utils::set_led,
     INIT_USB,
 };
 
@@ -53,7 +51,7 @@ impl Actuator for UsbHidActuator {
     fn connected(&mut self) {
         info!("Connected");
         // Dim yellow
-        set_led(RGB { r: 40, g: 20, b: 0 });
+        set_status(Status::Deactivated);
         // Delay USB init until we're connected, make the code easier to debug
         self.hid_report.init();
     }
@@ -162,7 +160,8 @@ impl Actuator for UsbHidActuator {
     }
 
     fn set_clipboard(&mut self, mut data: Vec<u8>) {
-        info!("Clipboard: {}", String::from_utf8_lossy(&data));
+        info!("Clipboard: {:?}", data);
+        set_status(Status::ClipboardSize(data.len()));
         std::mem::swap(CLIPBOARD.lock().unwrap().as_mut(), &mut data);
     }
 
@@ -179,14 +178,14 @@ impl Actuator for UsbHidActuator {
     fn enter(&mut self) {
         info!("Enter");
         // Lighter green
-        set_led(RGB { r: 0, g: 64, b: 0 });
+        set_status(Status::Activated);
         self.clear();
     }
 
     fn leave(&mut self) {
         info!("Leave");
         // Dim yellow
-        set_led(RGB { r: 40, g: 20, b: 0 });
+        set_status(Status::Deactivated);
         self.clear();
     }
 

@@ -20,7 +20,9 @@ debug = true # Symbols are nice and they don't increase the size on Flash
 opt-level = "z"
 
 [features]
+default = [ "m5atoms3lite" ]
 pio = ["esp-idf-sys/pio"]
+m5atoms3lite = []
 
 [dependencies]
 const_env = "0.1"
