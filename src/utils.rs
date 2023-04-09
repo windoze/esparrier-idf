@@ -1,4 +1,4 @@
-use std::{sync::Mutex, time::Duration};
+use std::time::Duration;
 
 use anyhow::{bail, Result};
 use esp_idf_hal::peripheral;
@@ -11,14 +11,7 @@ use log::info;
 
 use embedded_svc::wifi::{AccessPointConfiguration, ClientConfiguration, Configuration, Wifi};
 
-use smart_leds::{SmartLedsWrite, RGB};
-use ws2812_esp32_rmt_driver::{driver::color::LedPixelColorImpl, LedPixelEsp32Rmt};
-
 use crate::settings::{get_wifi_ssid, get_wifi_password};
-
-pub static STATUS_LED: Mutex<
-    Option<LedPixelEsp32Rmt<RGB<u8>, LedPixelColorImpl<3, 1, 0, 2, 255>>>,
-> = Mutex::new(None);
 
 pub fn wifi(
     modem: impl peripheral::Peripheral<P = esp_idf_hal::modem::Modem> + 'static,
@@ -94,10 +87,4 @@ pub fn wifi(
     info!("Wifi DHCP info: {:?}", ip_info);
 
     Ok(wifi)
-}
-
-pub fn set_led(color: RGB<u8>) {
-    if let Some(ws2812) = STATUS_LED.lock().unwrap().as_mut() {
-        ws2812.write(std::iter::once(color)).unwrap()
-    }
 }

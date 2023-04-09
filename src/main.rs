@@ -7,8 +7,6 @@ use esp_idf_svc::eventloop::EspSystemEventLoop;
 use esp_idf_sys::{self as _, nvs_flash_init};
 use lazy_static::lazy_static;
 use log::{error, info};
-use smart_leds::RGB;
-use ws2812_esp32_rmt_driver::Ws2812Esp32Rmt;
 
 mod barrier;
 mod keycodes;
@@ -17,19 +15,16 @@ mod reports;
 mod settings;
 mod usb_actor;
 mod utils;
+mod status;
 
 use paste_button::start_paste_button_task;
 use settings::*;
 use utils::*;
 
-use crate::{barrier::ThreadedActuator, usb_actor::UsbHidActuator};
+use crate::{barrier::ThreadedActuator, usb_actor::UsbHidActuator, status::{set_status, Status}};
 
 #[from_env("DEBUG_INIT_USB")]
 pub const INIT_USB: bool = true;
-
-// M5Atom S3 Lite has a status NeoPixel on GPIO 35
-#[from_env("STATUS_LED_PIN")]
-const STATUS_LED_PIN: u32 = 35;
 
 // M5Atom S3 Lite has a button on GPIO 41
 #[from_env("PASTE_BUTTON_PIN")]
@@ -49,15 +44,12 @@ fn main() -> Result<()> {
         nvs_flash_init();
     }
 
-    *STATUS_LED.lock().unwrap() = Some(Ws2812Esp32Rmt::new(0, STATUS_LED_PIN).unwrap());
-
     // Bind the log crate to the ESP Logging facilities
     esp_idf_svc::log::EspLogger::initialize_default();
 
     info!("Hello, world!");
 
-    // Red on start
-    set_led(RGB { r: 255, g: 0, b: 0 });
+    set_status(Status::Start);
 
     let peripherals = Peripherals::take().unwrap();
     let sysloop = EspSystemEventLoop::take()?;
@@ -66,7 +58,7 @@ fn main() -> Result<()> {
     let _wifi = wifi(peripherals.modem, sysloop).unwrap();
 
     // Blue when connected to wifi
-    set_led(RGB { r: 0, g: 0, b: 255 });
+    set_status(Status::WifiConnected);
 
     let screen_width = get_screen_width();
     let screen_height = get_screen_height();
@@ -92,7 +84,7 @@ fn main() -> Result<()> {
             error!("Connection failed: {}", e);
         }
     }
-    set_led(RGB { r: 0, g: 0, b: 255 });
+    set_status(Status::WifiConnected) ;// set_led(RGB { r: 0, g: 0, b: 255 });
 
     panic!("Disconnected, restarting...")
 }
