@@ -679,8 +679,8 @@ void init_synergy_hid_key_table() {
     table[ kKeyControl_R ] = HID_KEY_CONTROL_RIGHT ;
     table[ kKeyCapsLock ] = HID_KEY_CAPS_LOCK ;
     // table[ kKeyShiftLock ] = HID_KEY_ ;
-    // table[ kKeyMeta_L ] = HID_KEY_ ;
-    // table[ kKeyMeta_R ] = HID_KEY_ ;
+    table[ kKeyMeta_L ] = HID_KEY_ALT_LEFT ;
+    table[ kKeyMeta_R ] = HID_KEY_ALT_RIGHT ;
     table[ kKeyAlt_L ] = HID_KEY_ALT_LEFT ;
     table[ kKeyAlt_R ] = HID_KEY_ALT_RIGHT ;
     table[ kKeySuper_L ] = HID_KEY_GUI_LEFT ;

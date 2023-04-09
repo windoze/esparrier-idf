@@ -1,36 +1,39 @@
-use std::sync::{mpsc::SyncSender, Mutex};
+use std::sync::Mutex;
 
 use anyhow::Result;
-use barrier::ActMsg;
 use const_env::from_env;
-use esp_idf_hal::prelude::Peripherals;
+use esp_idf_hal::{gpio::AnyInputPin, prelude::Peripherals};
 use esp_idf_svc::eventloop::EspSystemEventLoop;
 use esp_idf_sys::{self as _, nvs_flash_init};
-use keycodes::ASCII_2_HID;
 use lazy_static::lazy_static;
 use log::{error, info};
 use smart_leds::RGB;
 use ws2812_esp32_rmt_driver::Ws2812Esp32Rmt;
 
 mod barrier;
-mod button;
 mod keycodes;
+mod paste_button;
 mod reports;
 mod settings;
 mod usb_actor;
 mod utils;
 
-use button::{start_button_task, ButtonCallback, ButtonState};
+use paste_button::start_paste_button_task;
 use settings::*;
 use utils::*;
 
 use crate::{barrier::ThreadedActuator, usb_actor::UsbHidActuator};
 
+#[from_env("DEBUG_INIT_USB")]
 pub const INIT_USB: bool = true;
 
 // M5Atom S3 Lite has a status NeoPixel on GPIO 35
 #[from_env("STATUS_LED_PIN")]
 const STATUS_LED_PIN: u32 = 35;
+
+// M5Atom S3 Lite has a button on GPIO 41
+#[from_env("PASTE_BUTTON_PIN")]
+const PASTE_BUTTON_PIN: i32 = 41;
 
 lazy_static! {
     static ref CLIPBOARD: Mutex<Vec<u8>> = Mutex::new(vec![]);
@@ -70,11 +73,10 @@ fn main() -> Result<()> {
     let actor = UsbHidActuator::new(screen_width, screen_height);
     let mut actor = ThreadedActuator::new(screen_width, screen_height, actor);
 
-    let b = PasteButton {
-        tx: actor.get_sender(),
-    };
-
-    start_button_task(peripherals.pins.gpio41.into(), b);
+    start_paste_button_task(
+        unsafe { AnyInputPin::new(PASTE_BUTTON_PIN) },
+        actor.get_sender(),
+    );
 
     info!("Connecting to barrier...");
     match barrier::start(
@@ -93,48 +95,4 @@ fn main() -> Result<()> {
     set_led(RGB { r: 0, g: 0, b: 255 });
 
     panic!("Disconnected, restarting...")
-}
-
-struct PasteButton {
-    tx: SyncSender<ActMsg>,
-}
-
-impl PasteButton {
-    fn send_char(&self, c: char) {
-        if c > 0x7F as char {
-            return;
-        }
-        let byte = c as u8;
-        let [k, m] = ASCII_2_HID[byte as usize];
-        if k == 0 {
-            return;
-        }
-        if m != 0 {
-            self.tx.send(ActMsg::HidKeyDown { key: m }).ok();
-            self.tx.send(ActMsg::HidKeyDown { key: k }).ok();
-            self.tx.send(ActMsg::HidKeyUp { key: k }).ok();
-            self.tx.send(ActMsg::HidKeyUp { key: m }).ok();
-        } else {
-            self.tx.send(ActMsg::HidKeyDown { key: k }).ok();
-            self.tx.send(ActMsg::HidKeyUp { key: k }).ok();
-        }
-    }
-}
-
-impl ButtonCallback for PasteButton {
-    fn on_button_event(&mut self, state: ButtonState) {
-        match state {
-            ButtonState::Up => {}
-            ButtonState::Down => {
-                let s = {
-                    let data = CLIPBOARD.lock().unwrap();
-                    String::from_utf8_lossy(&data).to_string()
-                };
-                for c in s.chars() {
-                    self.send_char(c);
-                }
-            }
-            ButtonState::Held => {}
-        }
-    }
 }
