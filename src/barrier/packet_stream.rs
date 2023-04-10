@@ -88,7 +88,6 @@ impl<S: PacketReader + PacketWriter> PacketStream<S> {
                         sz -= l;
                     }
                     debug!("ClipboardStash State: {:?}, NumFormats: {}, CurrentIndex: {}", c.state, c.num_format, c.current_index);
-                    assert!(c.ended());
                     c.into_data()
                 } else {
                     self.stream.consume_bytes()?;

@@ -160,7 +160,6 @@ impl Actuator for UsbHidActuator {
     }
 
     fn set_clipboard(&mut self, mut data: Vec<u8>) {
-        info!("Clipboard: {:?}", data);
         set_status(Status::ClipboardSize(data.len()));
         std::mem::swap(CLIPBOARD.lock().unwrap().as_mut(), &mut data);
     }

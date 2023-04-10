@@ -123,8 +123,4 @@ impl Clipboard {
     pub fn is_empty(&self) -> bool {
         self.num_format == 0
     }
-
-    pub fn ended(&self) -> bool {
-        matches!(self.state, States::End)
-    }
 }
