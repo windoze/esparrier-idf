@@ -240,7 +240,7 @@ pub const HID_KEY_GUI_RIGHT: u8 = 0xE7;
 // [key, mod]
 #[rustfmt::skip]
 pub const ASCII_2_HID: [[u8; 2]; 128] = [
-    // 0-31 are invisible control codes, except 0x09 HT(TAB) and 0x0A LF
+    // 0-31 are invisible control codes, except 0x09 HT(TAB) and 0x0A LF(Enter)
     [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0],
     [0, 0], [HID_KEY_TAB, 0], [HID_KEY_ENTER, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0],
     [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0],

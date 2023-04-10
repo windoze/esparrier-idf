@@ -48,7 +48,7 @@ impl NeoPixelStatusTask {
             Status::Start => self.set_color(RGB::new(128, 0, 0)),
             Status::WifiConnected => self.set_color(RGB::new(0, 0, 128)),
             Status::Activated => self.set_color(RGB::new(0, 64, 0)),
-            Status::Deactivated => self.set_color(RGB::new(32, 32, 0)),
+            Status::Deactivated => self.set_color(RGB::new(40, 24, 0)),
             Status::ClipboardSize(_) => {}
         }
     }

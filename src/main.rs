@@ -26,7 +26,7 @@ use crate::{barrier::ThreadedActuator, usb_actor::UsbHidActuator, status::{set_s
 #[from_env("DEBUG_INIT_USB")]
 pub const INIT_USB: bool = true;
 
-// M5Atom S3 Lite has a button on GPIO 41
+// M5Atom S3 and Lite has a button on GPIO 41
 #[from_env("PASTE_BUTTON_PIN")]
 const PASTE_BUTTON_PIN: i32 = 41;
 
