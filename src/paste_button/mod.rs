@@ -2,11 +2,7 @@ use std::sync::mpsc::SyncSender;
 
 use esp_idf_hal::gpio;
 
-use crate::{
-    barrier::ActMsg,
-    keycodes::ASCII_2_HID,
-    CLIPBOARD,
-};
+use crate::{barrier::ActMsg, keycodes::ASCII_2_HID, CLIPBOARD};
 
 mod button;
 
@@ -21,11 +17,13 @@ impl PasteButton {
         Self { tx }
     }
 
-    fn send_char(&self, c: char) {
-        if c > 0x7F as char {
+    /**
+     * Only supports 7bit ASCII characters as other keys don't have a USB HID code
+     */
+    fn send_char(&self, byte: u8) {
+        if byte > 0x7F {
             return;
         }
-        let byte = c as u8;
         let [k, m] = ASCII_2_HID[byte as usize];
         if k == 0 {
             return;
@@ -47,12 +45,12 @@ impl ButtonCallback for PasteButton {
         match state {
             ButtonState::Up => {}
             ButtonState::Down => {
-                let s = {
-                    let data = CLIPBOARD.lock().unwrap();
-                    String::from_utf8_lossy(&data).to_string()
-                };
-                for c in s.chars() {
-                    self.send_char(c);
+                let data = CLIPBOARD.lock().unwrap();
+                for c in data.iter() {
+                    if *c == 0 {
+                        break;
+                    }
+                    self.send_char(*c);
                 }
             }
             ButtonState::Held => {}
