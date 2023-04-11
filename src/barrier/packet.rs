@@ -68,7 +68,7 @@ pub enum Packet {
         x: u16,
         y: u16,
     },
-    Unknown(String),
+    Unknown([u8; 4]),
 }
 
 impl Packet {

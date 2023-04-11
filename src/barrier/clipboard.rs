@@ -81,10 +81,8 @@ impl Clipboard {
                     States::Data(length, 0)
                 }
                 States::Data(max, cur) => {
-                    if self.get_current_format() == ClipboardFormat::Text {
-                        if (cur as usize) < MAX_SIZE {
-                            self.data.last_mut().unwrap().1[cur as usize] = *b;
-                        }
+                    if self.get_current_format() == ClipboardFormat::Text && (cur as usize) < MAX_SIZE {
+                        self.data.last_mut().unwrap().1[cur as usize] = *b;
                     }
                     if cur + 1 == max {
                         if self.current_index + 1 < self.num_format {

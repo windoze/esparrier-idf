@@ -1,4 +1,4 @@
-use std::{collections::HashMap, cmp::min};
+use std::cmp::min;
 
 use log::debug;
 
@@ -16,9 +16,6 @@ impl<S: PacketReader + PacketWriter> PacketStream<S> {
     }
 
     pub fn read(&mut self) -> Result<Packet, PacketError> {
-        // let mut x = [0; 4];
-        // self.stream.read(&mut x)?;
-        // let size = u32::from_be_bytes(x);
         let size = self.stream.read_packet_size()?;
         if size < 4 {
             let mut vec = Vec::new();
@@ -26,33 +23,33 @@ impl<S: PacketReader + PacketWriter> PacketStream<S> {
             return Err(PacketError::PacketTooSmall);
         }
         let code: [u8; 4] = self.stream.read_bytes_fixed()?;
-        let code = String::from_utf8_lossy(&code).into_owned();
 
         let packet = match code.as_ref() {
-            "QINF" => Packet::QueryInfo,
-            "CIAK" => Packet::InfoAck,
-            "CALV" => Packet::KeepAlive,
-            "CROP" => Packet::ResetOptions,
-            "DSOP" => {
-                let num_items = self.stream.read_u32()?;
-                let num_opts = num_items / 2;
-                let mut opts = HashMap::new();
-                for _ in 0..num_opts {
-                    let opt: [u8; 4] = self.stream.read_bytes_fixed()?;
-                    let opt = String::from_utf8_lossy(&opt).into_owned();
-                    let val = self.stream.read_u32()?;
-                    debug!("Read option: {opt} with value {val:?}");
-                    opts.insert(opt, val);
-                }
-                Packet::SetDeviceOptions(opts)
-            }
-            "EUNK" => Packet::ErrorUnknownDevice,
-            "DMMV" => {
+            b"QINF" => Packet::QueryInfo,
+            b"CIAK" => Packet::InfoAck,
+            b"CALV" => Packet::KeepAlive,
+            // We don't really have any option to set and reset
+            // b"CROP" => Packet::ResetOptions,
+            // "DSOP" => {
+            //     let num_items = self.stream.read_u32()?;
+            //     let num_opts = num_items / 2;
+            //     let mut opts = HashMap::new();
+            //     for _ in 0..num_opts {
+            //         let opt: [u8; 4] = self.stream.read_bytes_fixed()?;
+            //         let opt = String::from_utf8_lossy(&opt).into_owned();
+            //         let val = self.stream.read_u32()?;
+            //         debug!("Read option: {opt} with value {val:?}");
+            //         opts.insert(opt, val);
+            //     }
+            //     Packet::SetDeviceOptions(opts)
+            // }
+            b"EUNK" => Packet::ErrorUnknownDevice,
+            b"DMMV" => {
                 let x = self.stream.read_u16()?;
                 let y = self.stream.read_u16()?;
                 Packet::MouseMoveAbs { x, y }
             }
-            "CINN" => {
+            b"CINN" => {
                 let x = self.stream.read_u16()?;
                 let y = self.stream.read_u16()?;
                 let seq_num = self.stream.read_u32()?;
@@ -64,13 +61,13 @@ impl<S: PacketReader + PacketWriter> PacketStream<S> {
                     mask,
                 }
             }
-            "COUT" => Packet::CursorLeave,
-            "CCLP" => {
+            b"COUT" => Packet::CursorLeave,
+            b"CCLP" => {
                 let id = self.stream.read_u8()?;
                 let seq_num = self.stream.read_u32()?;
                 Packet::GrabClipboard { id, seq_num }
             }
-            "DCLP" => {
+            b"DCLP" => {
                 let id = self.stream.read_u8()?;
                 let seq_num = self.stream.read_u32()?;
                 let mark = self.stream.read_u8()?;
@@ -101,34 +98,34 @@ impl<S: PacketReader + PacketWriter> PacketStream<S> {
                     data,
                 }
             }
-            "DMUP" => {
+            b"DMUP" => {
                 let id = self.stream.read_i8()?;
                 Packet::MouseUp { id }
             }
-            "DMDN" => {
+            b"DMDN" => {
                 let id = self.stream.read_i8()?;
                 Packet::MouseDown { id }
             }
-            "DKUP" => {
+            b"DKUP" => {
                 let id = self.stream.read_u16()?;
                 let mask = self.stream.read_u16()?;
                 let button = self.stream.read_u16()?;
                 Packet::KeyUp { id, mask, button }
             }
-            "DKDN" => {
+            b"DKDN" => {
                 let id = self.stream.read_u16()?;
                 let mask = self.stream.read_u16()?;
                 let button = self.stream.read_u16()?;
                 Packet::KeyDown { id, mask, button }
             }
-            "DKRP" => {
+            b"DKRP" => {
                 let id = self.stream.read_u16()?;
                 let mask = self.stream.read_u16()?;
                 let count = self.stream.read_u16()?;
                 let button = self.stream.read_u16()?;
                 Packet::KeyRepeat { id, mask, button, count }
             }
-            "DMWM" => {
+            b"DMWM" => {
                 let x_delta = self.stream.read_i16()?;
                 let y_delta = self.stream.read_i16()?;
                 Packet::MouseWheel { x_delta, y_delta }

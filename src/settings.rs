@@ -13,11 +13,11 @@ const DEFAULT_SCREEN_WIDTH: u16 = 1920;
 #[from_env("SCREEN_HEIGHT")]
 const DEFAULT_SCREEN_HEIGHT: u16 = 1080;
 #[from_env("BARRIER_SERVER")]
-const DEFAULT_BARRIER_SERVER: &'static str = "127.0.0.1";
+const DEFAULT_BARRIER_SERVER: &str = "127.0.0.1";
 #[from_env("BARRIER_PORT")]
 const DEFAULT_BARRIER_PORT: u16 = 24800;
 #[from_env("SCREEN_NAME")]
-const DEFAULT_SCREEN_NAME: &'static str = "ESPARRIER";
+const DEFAULT_SCREEN_NAME: &str = "ESPARRIER";
 const DEFAULT_SSID: &str = env!("WIFI_SSID");
 const DEFAULT_PASS: &str = env!("WIFI_PASSWORD");
 #[from_env("REVERSED_WHEEL")]

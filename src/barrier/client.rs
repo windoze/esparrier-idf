@@ -103,7 +103,7 @@ pub fn start<A: Actuator>(
                 mark: _,
                 data,
             } => {
-                data.map(|data| actor.set_clipboard(data));
+                if let Some(data) = data { actor.set_clipboard(data) }
             }
             Packet::GrabClipboard { .. } => {}
             Packet::DeviceInfo { .. } | Packet::ErrorUnknownDevice | Packet::ClientNoOp => {

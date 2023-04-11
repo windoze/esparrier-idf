@@ -360,13 +360,13 @@ pub fn synergy_to_hid(id: u16) -> KeyCode {
         } else {
             KeyCode::Key(TABLE[id as usize])
         }
-    } else if id >= 0xEF00 && id <= 0xEFFF {
+    } else if (0xEF00..=0xEFFF).contains(&id) {
         if EXT_TAB[(id - 0xEF00) as usize] == 0 {
             KeyCode::None
         } else {
             KeyCode::Key(EXT_TAB[(id - 0xEF00) as usize])
         }
-    } else if id >= 0xE000 && id <= 0xE0FF {
+    } else if (0xE000..=0xE0FF).contains(&id) {
         if MEDIA_TAB[(id - 0xE000) as usize] == 0 {
             KeyCode::None
         } else {
