@@ -1,6 +1,8 @@
-use std::collections::HashMap;
-
-use crate::{settings::*, CLIPBOARD, status::{set_status, Status}};
+use crate::{
+    settings::*,
+    status::{set_status, Status},
+    CLIPBOARD,
+};
 use log::{debug, info, warn};
 
 use crate::{
@@ -15,7 +17,6 @@ pub struct UsbHidActuator {
     pub height: u16,
     pub x: u16,
     pub y: u16,
-    pub options: HashMap<String, u32>,
     pub flip_mouse_wheel: bool,
     pub v_scroll_scale: f32,
     pub h_scroll_scale: f32,
@@ -31,7 +32,6 @@ impl UsbHidActuator {
             height,
             x: 0,
             y: 0,
-            options: HashMap::new(),
             flip_mouse_wheel: get_reversed_wheel(),
             v_scroll_scale: get_v_scroll_scale(),
             h_scroll_scale: get_h_scroll_scale(),
@@ -164,13 +164,11 @@ impl Actuator for UsbHidActuator {
         std::mem::swap(CLIPBOARD.lock().unwrap().as_mut(), &mut data);
     }
 
-    fn set_options(&mut self, opts: std::collections::HashMap<String, u32>) {
-        self.options = opts;
-        info!("Set options {:#?}", self.options)
+    fn set_options(&mut self, heartbeat: u32) {
+        info!("Set heartbeat {heartbeat}")
     }
 
     fn reset_options(&mut self) {
-        self.options.clear();
         info!("Reset options")
     }
 
@@ -189,12 +187,14 @@ impl Actuator for UsbHidActuator {
     }
 
     fn hid_key_down(&mut self, key: u8) {
-        self.hid_report
-            .send(HidReportType::KeyPress { key_code: KeyCode::Key(key) });
+        self.hid_report.send(HidReportType::KeyPress {
+            key_code: KeyCode::Key(key),
+        });
     }
 
     fn hid_key_up(&mut self, key: u8) {
-        self.hid_report
-            .send(HidReportType::KeyRelease { key_code: KeyCode::Key(key) });
+        self.hid_report.send(HidReportType::KeyRelease {
+            key_code: KeyCode::Key(key),
+        });
     }
 }

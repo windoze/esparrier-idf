@@ -1,4 +1,4 @@
-use std::{collections::HashMap, io::Write};
+use std::io::Write;
 
 use super::{PacketError, PacketWriter};
 
@@ -19,7 +19,9 @@ pub enum Packet {
     KeepAlive,
     ResetOptions,
     ClientNoOp,
-    SetDeviceOptions(HashMap<String, u32>),
+    SetDeviceOptions {
+        heartbeat: u32,
+    },
     ErrorUnknownDevice,
     GrabClipboard {
         id: u8,

@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 pub trait Actuator {
     fn connected(&mut self);
 
@@ -27,7 +25,7 @@ pub trait Actuator {
 
     fn set_clipboard(&mut self, data: Vec<u8>);
 
-    fn set_options(&mut self, opts: HashMap<String, u32>);
+    fn set_options(&mut self, heartbeat: u32);
 
     fn reset_options(&mut self);
 

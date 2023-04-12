@@ -1,10 +1,10 @@
-use std::cmp::min;
+use std::{cmp::min, net::TcpStream};
 
 use log::debug;
 
 use crate::barrier::clipboard::Clipboard;
 
-use super::{PacketReader, PacketWriter, PacketError, Packet};
+use super::{Packet, PacketError, PacketReader, PacketWriter};
 
 pub struct PacketStream<S: PacketReader + PacketWriter> {
     stream: S,
@@ -30,19 +30,20 @@ impl<S: PacketReader + PacketWriter> PacketStream<S> {
             b"CALV" => Packet::KeepAlive,
             // We don't really have any option to set and reset
             // b"CROP" => Packet::ResetOptions,
-            // "DSOP" => {
-            //     let num_items = self.stream.read_u32()?;
-            //     let num_opts = num_items / 2;
-            //     let mut opts = HashMap::new();
-            //     for _ in 0..num_opts {
-            //         let opt: [u8; 4] = self.stream.read_bytes_fixed()?;
-            //         let opt = String::from_utf8_lossy(&opt).into_owned();
-            //         let val = self.stream.read_u32()?;
-            //         debug!("Read option: {opt} with value {val:?}");
-            //         opts.insert(opt, val);
-            //     }
-            //     Packet::SetDeviceOptions(opts)
-            // }
+            b"DSOP" => {
+                let num_items = self.stream.read_u32()?;
+                let num_opts = num_items / 2;
+                let mut heartbeat: u32 = 5000;
+                // Currently only HBRT(Heartbeat interval) is supported
+                for _ in 0..num_opts {
+                    let opt: [u8; 4] = self.stream.read_bytes_fixed()?;
+                    let val = self.stream.read_u32()?;
+                    if &opt == b"HBRT" {
+                        heartbeat = val;
+                    }
+                }
+                Packet::SetDeviceOptions { heartbeat }
+            }
             b"EUNK" => Packet::ErrorUnknownDevice,
             b"DMMV" => {
                 let x = self.stream.read_u16()?;
@@ -84,13 +85,16 @@ impl<S: PacketReader + PacketWriter> PacketStream<S> {
                         c.feed(&buf[0..l]);
                         sz -= l;
                     }
-                    debug!("ClipboardStash State: {:?}, NumFormats: {}, CurrentIndex: {}", c.state, c.num_format, c.current_index);
+                    debug!(
+                        "ClipboardStash State: {:?}, NumFormats: {}, CurrentIndex: {}",
+                        c.state, c.num_format, c.current_index
+                    );
                     c.into_data()
                 } else {
                     self.stream.consume_bytes()?;
                     None
                 };
-                
+
                 Packet::SetClipboard {
                     id,
                     seq_num,
@@ -123,7 +127,12 @@ impl<S: PacketReader + PacketWriter> PacketStream<S> {
                 let mask = self.stream.read_u16()?;
                 let count = self.stream.read_u16()?;
                 let button = self.stream.read_u16()?;
-                Packet::KeyRepeat { id, mask, button, count }
+                Packet::KeyRepeat {
+                    id,
+                    mask,
+                    button,
+                    count,
+                }
             }
             b"DMWM" => {
                 let x_delta = self.stream.read_i16()?;
@@ -146,5 +155,15 @@ impl<S: PacketReader + PacketWriter> PacketStream<S> {
     pub fn write(&mut self, packet: Packet) -> Result<(), PacketError> {
         packet.write_wire(&mut self.stream)?;
         Ok(())
+    }
+}
+
+pub trait ReadTimeout {
+    fn set_read_timeout(&mut self, timeout: Option<std::time::Duration>) -> Result<(), std::io::Error>;
+}
+
+impl ReadTimeout for PacketStream<TcpStream> {
+    fn set_read_timeout(&mut self, timeout: Option<std::time::Duration>) -> Result<(), std::io::Error> {
+        self.stream.set_read_timeout(timeout)
     }
 }

@@ -1,5 +1,4 @@
 use std::{
-    collections::HashMap,
     marker::PhantomData,
     sync::mpsc::{sync_channel, SyncSender},
     thread,
@@ -48,7 +47,7 @@ pub enum ActMsg {
         data: Vec<u8>,
     },
     SetOptions {
-        opts: HashMap<String, u32>,
+        heartbeat: u32,
     },
     ResetOptions,
     Enter,
@@ -58,7 +57,7 @@ pub enum ActMsg {
     },
     HidKeyUp {
         key: u8,
-    }
+    },
 }
 
 pub struct ThreadedActuator<T> {
@@ -96,7 +95,7 @@ impl<T: Actuator + Send + 'static> ThreadedActuator<T> {
                         } => actuator.key_repeat(key, mask, button, count),
                         ActMsg::KeyUp { key, mask, button } => actuator.key_up(key, mask, button),
                         ActMsg::SetClipboard { data } => actuator.set_clipboard(data),
-                        ActMsg::SetOptions { opts } => actuator.set_options(opts),
+                        ActMsg::SetOptions { heartbeat } => actuator.set_options(heartbeat),
                         ActMsg::ResetOptions => actuator.reset_options(),
                         ActMsg::Enter => actuator.enter(),
                         ActMsg::Leave => actuator.leave(),
@@ -188,8 +187,8 @@ impl<T: Actuator + Send + 'static> Actuator for ThreadedActuator<T> {
         self.send(ActMsg::SetClipboard { data })
     }
 
-    fn set_options(&mut self, opts: HashMap<String, u32>) {
-        self.send(ActMsg::SetOptions { opts })
+    fn set_options(&mut self, heartbeat: u32) {
+        self.send(ActMsg::SetOptions { heartbeat })
     }
 
     fn reset_options(&mut self) {

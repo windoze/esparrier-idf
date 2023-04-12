@@ -1,6 +1,8 @@
-use std::{io::Write, net::TcpStream};
+use std::{io::Write, net::TcpStream, time::Duration};
 
-use log::debug;
+use log::{debug, info};
+
+use crate::barrier::packet_stream::ReadTimeout;
 
 use super::{Actuator, ConnectionError, Packet, PacketReader, PacketStream, PacketWriter};
 
@@ -15,6 +17,7 @@ pub fn start<A: Actuator>(
     let mut stream = TcpStream::connect((addr, port))?;
     // Turn off Nagle, this may not be available on ESP-IDF, so ignore the error.
     stream.set_nodelay(true).ok();
+    stream.set_read_timeout(Some(Duration::from_secs(10))).ok();
 
     let _size = stream.read_packet_size()?;
     stream.read_str_lit("Barrier")?;
@@ -88,8 +91,13 @@ pub fn start<A: Actuator>(
             Packet::ResetOptions => {
                 actor.reset_options();
             }
-            Packet::SetDeviceOptions(opts) => {
-                actor.set_options(opts);
+            Packet::SetDeviceOptions { heartbeat } => {
+                info!("Set Heartbeat Interval: {heartbeat}");
+                // Set the read timeout to twice the heartbeat interval
+                packet_stream
+                    .set_read_timeout(Some(Duration::from_millis(heartbeat as u64 * 2)))
+                    .ok();
+                actor.set_options(heartbeat);
             }
             Packet::CursorEnter { .. } => {
                 actor.enter();
@@ -103,7 +111,9 @@ pub fn start<A: Actuator>(
                 mark: _,
                 data,
             } => {
-                if let Some(data) = data { actor.set_clipboard(data) }
+                if let Some(data) = data {
+                    actor.set_clipboard(data)
+                }
             }
             Packet::GrabClipboard { .. } => {}
             Packet::DeviceInfo { .. } | Packet::ErrorUnknownDevice | Packet::ClientNoOp => {
