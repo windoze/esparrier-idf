@@ -142,6 +142,9 @@ impl Actuator for UsbHidActuator {
         if self.server_buttons[button as usize] != 0 {
             debug!("Key {key} up");
             self.server_buttons[button as usize] = 0;
+        } else if key == 0 {
+            info!("Key 0 up, clear all key down");
+            self.hid_report.clear();
         } else {
             warn!("Key {key} up with no key down");
         }
