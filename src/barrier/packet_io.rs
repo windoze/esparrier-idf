@@ -15,6 +15,17 @@ pub trait PacketReader: Read + Send + Unpin {
         Ok(())
     }
 
+    fn discard_exact(&mut self, len: usize) -> Result<(), PacketError> {
+        let mut buf = vec![0; 16];
+        let mut len = len;
+        while len > 0 {
+            let to_read = std::cmp::min(len, buf.len());
+            self.read_exact(&mut buf[..to_read])?;
+            len -= to_read;
+        }
+        Ok(())
+    }
+
     fn read_packet_size(&mut self) -> Result<u32, PacketError> {
         self.read_u32()
     }

@@ -1,6 +1,6 @@
 use std::{cmp::min, net::TcpStream};
 
-use log::debug;
+use log::{debug, warn};
 
 use crate::barrier::clipboard::Clipboard;
 
@@ -21,6 +21,10 @@ impl<S: PacketReader + PacketWriter> PacketStream<S> {
             let mut vec = Vec::new();
             self.stream.read_to_end(&mut vec)?;
             return Err(PacketError::PacketTooSmall);
+        }
+        if size > 2048 {
+            warn!("Packet too large, discarding {} bytes", size - 4);
+            self.stream.discard_exact((size - 4) as usize)?;
         }
         let code: [u8; 4] = self.stream.read_bytes_fixed()?;
 
