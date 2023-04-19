@@ -71,19 +71,24 @@ fn main() -> Result<()> {
     );
 
     info!("Connecting to barrier...");
-    match barrier::start(
-        get_barrier_server(),
-        get_barrier_port(),
-        get_screen_name(),
-        &mut actor,
-    ) {
-        Ok(_) => {
-            error!("Connection closed");
+    for _ in 0..10 {
+        match barrier::start(
+            get_barrier_server(),
+            get_barrier_port(),
+            get_screen_name(),
+            &mut actor,
+        ) {
+            Ok(_) => {
+                error!("Connection closed");
+            }
+            Err(e) => {
+                error!("Connection failed: {}", e);
+            }
         }
-        Err(e) => {
-            error!("Connection failed: {}", e);
-        }
+        info!("Reconnecting in 1 seconds...");
+        std::thread::sleep(std::time::Duration::from_secs(1));
     }
+    info!("Failed to connect to barrier, restarting...");
     set_status(Status::WifiConnected) ;// set_led(RGB { r: 0, g: 0, b: 255 });
 
     panic!("Disconnected, restarting...")
