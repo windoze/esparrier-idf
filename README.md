@@ -51,7 +51,7 @@ The program cannot "copy" content to the clipboard.
 
 Better clipboard support is still WIP.
 
-NOTE: When you copied a large amount of text or big image from other screen then moved into the screen connected to the board, the board may stuck for a while, this is because the board is trying to discard the clipboard content. Even it will not parse and hold the whole content, still it needs to receive the whole content from the Barrier server as there is no way to skip a chunk in the middle of a TCP stream without actually reading it. But the board should resume operational after few seconds and it will not repeatedly process the same clipboard content if you move out and move in again.
+NOTE: When you copied a large amount of text or big image from other screen then moved into the screen connected to the board, the board may stuck for a while, this is because the board is trying to discard the clipboard content. Even it will not parse and hold the whole content, still it needs to receive the whole content from the Barrier server as there is no way to skip a chunk in the middle of a TCP stream without actually reading it. But the board should resume operation after few seconds and it will not repeatedly process the same clipboard content if you move out and move in again.
 
 ## Update Configurations
 
