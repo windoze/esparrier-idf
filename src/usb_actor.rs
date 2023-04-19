@@ -147,6 +147,7 @@ impl Actuator for UsbHidActuator {
             self.hid_report.clear();
         } else {
             warn!("Key {key} up with no key down");
+            self.hid_report.clear();
         }
         let hid = synergy_to_hid(key);
         if INIT_USB {

@@ -1,10 +1,8 @@
-use std::{cmp::min, net::TcpStream};
+use std::net::TcpStream;
 
 use log::{debug, warn};
 
-use crate::barrier::clipboard::Clipboard;
-
-use super::{Packet, PacketError, PacketReader, PacketWriter};
+use super::{Packet, PacketError, PacketReader, PacketWriter, clipboard::parse_clipboard};
 
 pub struct PacketStream<S: PacketReader + PacketWriter> {
     stream: S,
@@ -22,11 +20,13 @@ impl<S: PacketReader + PacketWriter> PacketStream<S> {
             self.stream.read_to_end(&mut vec)?;
             return Err(PacketError::PacketTooSmall);
         }
+        let mut chunk = super::take::Take::new(&mut self.stream, size as u64);
+        let code: [u8; 4] = chunk.read_bytes_fixed()?;
         if size > 2048 {
-            warn!("Packet too large, discarding {} bytes", size - 4);
-            self.stream.discard_exact((size - 4) as usize)?;
+            warn!("Packet too large, discarding {} bytes", size);
+            chunk.discard_all()?;
+            return Ok(Packet::Unknown(code));
         }
-        let code: [u8; 4] = self.stream.read_bytes_fixed()?;
 
         let packet = match code.as_ref() {
             b"QINF" => Packet::QueryInfo,
@@ -35,13 +35,13 @@ impl<S: PacketReader + PacketWriter> PacketStream<S> {
             // We don't really have any option to set and reset
             // b"CROP" => Packet::ResetOptions,
             b"DSOP" => {
-                let num_items = self.stream.read_u32()?;
+                let num_items = chunk.read_u32()?;
                 let num_opts = num_items / 2;
                 let mut heartbeat: u32 = 5000;
                 // Currently only HBRT(Heartbeat interval) is supported
                 for _ in 0..num_opts {
-                    let opt: [u8; 4] = self.stream.read_bytes_fixed()?;
-                    let val = self.stream.read_u32()?;
+                    let opt: [u8; 4] = chunk.read_bytes_fixed()?;
+                    let val = chunk.read_u32()?;
                     if &opt == b"HBRT" {
                         heartbeat = val;
                     }
@@ -50,15 +50,15 @@ impl<S: PacketReader + PacketWriter> PacketStream<S> {
             }
             b"EUNK" => Packet::ErrorUnknownDevice,
             b"DMMV" => {
-                let x = self.stream.read_u16()?;
-                let y = self.stream.read_u16()?;
+                let x = chunk.read_u16()?;
+                let y = chunk.read_u16()?;
                 Packet::MouseMoveAbs { x, y }
             }
             b"CINN" => {
-                let x = self.stream.read_u16()?;
-                let y = self.stream.read_u16()?;
-                let seq_num = self.stream.read_u32()?;
-                let mask = self.stream.read_u16()?;
+                let x = chunk.read_u16()?;
+                let y = chunk.read_u16()?;
+                let seq_num = chunk.read_u32()?;
+                let mask = chunk.read_u16()?;
                 Packet::CursorEnter {
                     x,
                     y,
@@ -68,36 +68,23 @@ impl<S: PacketReader + PacketWriter> PacketStream<S> {
             }
             b"COUT" => Packet::CursorLeave,
             b"CCLP" => {
-                let id = self.stream.read_u8()?;
-                let seq_num = self.stream.read_u32()?;
+                let id = chunk.read_u8()?;
+                let seq_num = chunk.read_u32()?;
                 Packet::GrabClipboard { id, seq_num }
             }
             b"DCLP" => {
-                let id = self.stream.read_u8()?;
-                let seq_num = self.stream.read_u32()?;
-                let mark = self.stream.read_u8()?;
+                let id = chunk.read_u8()?;
+                let seq_num = chunk.read_u32()?;
+                let mark = chunk.read_u8()?;
+                debug!("DCLP chunk, size: {}, mark: {}", size, mark);
+                let mut data = None;
 
-                // mark 1 is a length string in ASCII
+                // mark 1 is the total length string in ASCII
                 // mark 2 is the actual data
                 // mark 3 is an empty chunk
-                let data = if mark == 2 {
-                    let mut c = Clipboard::default();
-                    let mut sz = self.stream.read_u32()? as usize;
-                    let mut buf: [u8; 16] = [0; 16];
-                    while sz > 0 {
-                        let l = self.stream.read(&mut buf[0..min(16, sz)])?;
-                        c.feed(&buf[0..l]);
-                        sz -= l;
-                    }
-                    debug!(
-                        "ClipboardStash State: {:?}, NumFormats: {}, CurrentIndex: {}",
-                        c.state, c.num_format, c.current_index
-                    );
-                    c.into_data()
-                } else {
-                    self.stream.consume_bytes()?;
-                    None
-                };
+                if mark==2 {
+                    data = parse_clipboard(&mut chunk).unwrap_or_default();
+                }
 
                 Packet::SetClipboard {
                     id,
@@ -106,31 +93,32 @@ impl<S: PacketReader + PacketWriter> PacketStream<S> {
                     data,
                 }
             }
+
             b"DMUP" => {
-                let id = self.stream.read_i8()?;
+                let id = chunk.read_i8()?;
                 Packet::MouseUp { id }
             }
             b"DMDN" => {
-                let id = self.stream.read_i8()?;
+                let id = chunk.read_i8()?;
                 Packet::MouseDown { id }
             }
             b"DKUP" => {
-                let id = self.stream.read_u16()?;
-                let mask = self.stream.read_u16()?;
-                let button = self.stream.read_u16()?;
+                let id = chunk.read_u16()?;
+                let mask = chunk.read_u16()?;
+                let button = chunk.read_u16()?;
                 Packet::KeyUp { id, mask, button }
             }
             b"DKDN" => {
-                let id = self.stream.read_u16()?;
-                let mask = self.stream.read_u16()?;
-                let button = self.stream.read_u16()?;
+                let id = chunk.read_u16()?;
+                let mask = chunk.read_u16()?;
+                let button = chunk.read_u16()?;
                 Packet::KeyDown { id, mask, button }
             }
             b"DKRP" => {
-                let id = self.stream.read_u16()?;
-                let mask = self.stream.read_u16()?;
-                let count = self.stream.read_u16()?;
-                let button = self.stream.read_u16()?;
+                let id = chunk.read_u16()?;
+                let mask = chunk.read_u16()?;
+                let count = chunk.read_u16()?;
+                let button = chunk.read_u16()?;
                 Packet::KeyRepeat {
                     id,
                     mask,
@@ -139,19 +127,22 @@ impl<S: PacketReader + PacketWriter> PacketStream<S> {
                 }
             }
             b"DMWM" => {
-                let x_delta = self.stream.read_i16()?;
-                let y_delta = self.stream.read_i16()?;
+                let x_delta = chunk.read_i16()?;
+                let y_delta = chunk.read_i16()?;
                 Packet::MouseWheel { x_delta, y_delta }
             }
-            _ => {
-                let mut s = size - 4;
-                while s > 0 {
-                    let _: [u8; 1] = self.stream.read_bytes_fixed()?;
-                    s -= 1;
-                }
-                Packet::Unknown(code)
-            }
+            _ => Packet::Unknown(code),
         };
+
+        // Discard the rest of the packet
+        while chunk.limit() > 0 {
+            warn!(
+                "Discarding rest of packet, code: {:?}, size: {}",
+                code,
+                chunk.limit()
+            );
+            chunk.discard_all()?;
+        }
 
         Ok(packet)
     }
@@ -163,11 +154,17 @@ impl<S: PacketReader + PacketWriter> PacketStream<S> {
 }
 
 pub trait ReadTimeout {
-    fn set_read_timeout(&mut self, timeout: Option<std::time::Duration>) -> Result<(), std::io::Error>;
+    fn set_read_timeout(
+        &mut self,
+        timeout: Option<std::time::Duration>,
+    ) -> Result<(), std::io::Error>;
 }
 
 impl ReadTimeout for PacketStream<TcpStream> {
-    fn set_read_timeout(&mut self, timeout: Option<std::time::Duration>) -> Result<(), std::io::Error> {
+    fn set_read_timeout(
+        &mut self,
+        timeout: Option<std::time::Duration>,
+    ) -> Result<(), std::io::Error> {
         self.stream.set_read_timeout(timeout)
     }
 }

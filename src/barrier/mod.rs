@@ -6,6 +6,7 @@ mod packet_io;
 mod packet_stream;
 mod clipboard;
 mod thread_act;
+mod take;
 
 pub use error::{ConnectionError, PacketError};
 pub use packet::Packet;
