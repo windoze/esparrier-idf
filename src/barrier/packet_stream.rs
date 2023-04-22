@@ -2,7 +2,11 @@ use std::net::TcpStream;
 
 use log::{debug, warn};
 
-use super::{Packet, PacketError, PacketReader, PacketWriter, clipboard::parse_clipboard};
+use super::{
+    client::ClipboardStage,
+    clipboard::parse_clipboard,
+    Packet, PacketError, PacketReader, PacketWriter,
+};
 
 pub struct PacketStream<S: PacketReader + PacketWriter> {
     stream: S,
@@ -13,7 +17,7 @@ impl<S: PacketReader + PacketWriter> PacketStream<S> {
         Self { stream }
     }
 
-    pub fn read(&mut self) -> Result<Packet, PacketError> {
+    pub fn read(&mut self, clipboard_stage: &mut ClipboardStage) -> Result<Packet, PacketError> {
         let size = self.stream.read_packet_size()?;
         if size < 4 {
             let mut vec = Vec::new();
@@ -77,20 +81,56 @@ impl<S: PacketReader + PacketWriter> PacketStream<S> {
                 let seq_num = chunk.read_u32()?;
                 let mark = chunk.read_u8()?;
                 debug!("DCLP chunk, size: {}, mark: {}", size, mark);
-                let mut data = None;
 
                 // mark 1 is the total length string in ASCII
-                // mark 2 is the actual data
+                // mark 2 is the actual data and is split into chunks
                 // mark 3 is an empty chunk
-                if mark==2 {
-                    data = parse_clipboard(&mut chunk).unwrap_or_default();
-                }
-
-                Packet::SetClipboard {
-                    id,
-                    seq_num,
-                    mark,
-                    data,
+                debug!("Current Clipboard stage: {:?}", clipboard_stage);
+                *clipboard_stage = match mark {
+                    1 => match clipboard_stage {
+                        ClipboardStage::None => ClipboardStage::Mark1,
+                        ClipboardStage::Mark3 => ClipboardStage::Mark1,
+                        _ => {
+                            warn!("Unexpected clipboard stage: {:?}", clipboard_stage);
+                            ClipboardStage::None
+                        }
+                    },
+                    2 => match clipboard_stage {
+                        // 1st mark 2 chunk
+                        ClipboardStage::Mark1 => ClipboardStage::Mark2(0),
+                        ClipboardStage::Mark2(idx) => ClipboardStage::Mark2(*idx + 1),
+                        _ => {
+                            warn!("Unexpected clipboard stage: {:?}", clipboard_stage);
+                            ClipboardStage::None
+                        }
+                    },
+                    3 => match clipboard_stage {
+                        ClipboardStage::Mark2(_) => ClipboardStage::Mark3,
+                        _ => {
+                            warn!("Unexpected clipboard stage: {:?}", clipboard_stage);
+                            ClipboardStage::None
+                        }
+                    },
+                    _ => {
+                        warn!("Unexpected clipboard mark: {}", mark);
+                        ClipboardStage::None
+                    }
+                };
+                // We only process the 1st mark 2 chunk
+                if *clipboard_stage == ClipboardStage::Mark2(0) {
+                    Packet::SetClipboard {
+                        id,
+                        seq_num,
+                        mark,
+                        data: parse_clipboard(&mut chunk).unwrap_or_default(),
+                    }
+                } else {
+                    Packet::SetClipboard {
+                        id,
+                        seq_num,
+                        mark,
+                        data: None,
+                    }
                 }
             }
 

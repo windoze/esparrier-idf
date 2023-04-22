@@ -6,6 +6,14 @@ use crate::barrier::packet_stream::ReadTimeout;
 
 use super::{Actuator, ConnectionError, Packet, PacketReader, PacketStream, PacketWriter};
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ClipboardStage {
+    None,
+    Mark1,
+    Mark2(usize),
+    Mark3,
+}
+
 pub fn start<A: Actuator>(
     addr: &str,
     port: u16,
@@ -33,8 +41,9 @@ pub fn start<A: Actuator>(
 
     actor.connected();
 
+    let mut clipboard_stage = ClipboardStage::None;
     let mut packet_stream = PacketStream::new(stream);
-    while let Ok(packet) = packet_stream.read() {
+    while let Ok(packet) = packet_stream.read(&mut clipboard_stage) {
         match packet {
             Packet::QueryInfo => {
                 packet_stream
