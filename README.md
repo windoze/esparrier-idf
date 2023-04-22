@@ -88,6 +88,7 @@ First, you need to install some tools:
 * Frequently connect/disconnect may cause the board fail to connect to the WiFi and/or Barrier server, you may need to power off the board and wait for a while before trying again.
 * In theory the board should be working with [InputLeap](https://github.com/input-leap/input-leap) server as well but I've never tested it.
 * The USB VID/PID are randomly picked and not registered, so you may need to change the code to use your own VID/PID.
+* The USB remote wakeup may not work because the standard forbids a suspended device consume too much current but this program needs much more than the standard says to keep Wi-Fi connected. I still haven't figured out how to keep the program running with the current <2.5mA. Of course you can choose a board with external power source such as a battery, but it seems to be an overkill.
 * The program can accept inputs only **after** the board successfully connects to the WiFi and Barrier server, it may be too late to use the board as a USB keyboard/mouse in BIOS/EFI, some main board that has always-on USB ports may work, but I haven't tested it, or you can use a USB hub that can supply power even if the host is off.
 
 ## TODO:
