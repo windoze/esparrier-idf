@@ -13,15 +13,19 @@ mod keycodes;
 mod paste_button;
 mod reports;
 mod settings;
+mod status;
 mod usb_actor;
 mod utils;
-mod status;
 
 use paste_button::start_paste_button_task;
 use settings::*;
 use utils::*;
 
-use crate::{barrier::ThreadedActuator, usb_actor::UsbHidActuator, status::{set_status, Status}};
+use crate::{
+    barrier::ThreadedActuator,
+    status::{set_status, Status},
+    usb_actor::UsbHidActuator,
+};
 
 #[from_env("DEBUG_INIT_USB")]
 pub const INIT_USB: bool = true;
@@ -49,9 +53,48 @@ fn main() -> Result<()> {
 
     info!("Hello, world!");
 
+    let peripherals = Peripherals::take().unwrap();
+
+    #[cfg(feature = "m5atoms3")]
+    {
+        let display = {
+            // backlight
+            esp_idf_hal::gpio::PinDriver::output(peripherals.pins.gpio16)
+                .unwrap()
+                .set_high()
+                .unwrap();
+    
+            let di = display_interface_spi::SPIInterfaceNoCS::new(
+                esp_idf_hal::spi::SpiDeviceDriver::new_single(
+                    peripherals.spi2,
+                    peripherals.pins.gpio17,
+                    peripherals.pins.gpio21,
+                    Option::<esp_idf_hal::gpio::Gpio21>::None,
+                    esp_idf_hal::spi::Dma::Disabled,
+                    Some(peripherals.pins.gpio15),
+                    &esp_idf_hal::spi::SpiConfig::new()
+                        .baudrate(esp_idf_hal::units::FromValueType::MHz(27u32).into()),
+                )
+                .unwrap(),
+                esp_idf_hal::gpio::PinDriver::output(peripherals.pins.gpio33).unwrap(),
+            );
+    
+            mipidsi::Builder::st7789(di)
+                .with_color_order(mipidsi::ColorOrder::Bgr)
+                .with_display_size(128, 128)
+                .with_framebuffer_size(128, 128)
+                .with_window_offset_handler(|_| (2, 1))
+                .init(
+                    &mut esp_idf_hal::delay::Ets,
+                    Some(esp_idf_hal::gpio::PinDriver::output(peripherals.pins.gpio34).unwrap()),
+                )
+                .map_err(|e| anyhow::anyhow!("Display error: {:?}", e))?
+        };
+        status::lcd_status::init_display(display);
+    }
+
     set_status(Status::Start);
 
-    let peripherals = Peripherals::take().unwrap();
     let sysloop = EspSystemEventLoop::take()?;
 
     // Initialize WIFI
@@ -89,7 +132,7 @@ fn main() -> Result<()> {
         std::thread::sleep(std::time::Duration::from_secs(1));
     }
     info!("Failed to connect to barrier, restarting...");
-    set_status(Status::WifiConnected) ;// set_led(RGB { r: 0, g: 0, b: 255 });
+    set_status(Status::WifiConnected); // set_led(RGB { r: 0, g: 0, b: 255 });
 
     panic!("Disconnected, restarting...")
 }

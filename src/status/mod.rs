@@ -1,3 +1,4 @@
+#[allow(dead_code)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Status {
     None,
@@ -17,18 +18,10 @@ pub trait StatusDisplay {
 mod neopixel_status;
 
 #[cfg(feature = "m5atoms3lite")]
-type StatusDisplayType = neopixel_status::NeoPixelStatus;
+pub use neopixel_status::set_status;
 
 #[cfg(feature = "m5atoms3")]
-mod lcd_status;
+pub mod lcd_status;
 
 #[cfg(feature = "m5atoms3")]
-type StatusDisplayType = lcd_status::LcdStatus;
-
-lazy_static :: lazy_static! {
-    static ref STATUS_DISPLAY: StatusDisplayType = StatusDisplayType::new();
-}
-
-pub fn set_status(status: Status) {
-    STATUS_DISPLAY.set_status(status);
-}
+pub use lcd_status::set_status;
