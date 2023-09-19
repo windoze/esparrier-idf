@@ -16,7 +16,6 @@ pub fn wifi(
     sysloop: EspSystemEventLoop,
 ) -> Result<Box<EspWifi<'static>>> {
     unsafe {
-        esp_idf_sys::esp_wifi_set_ps(esp_idf_sys::wifi_ps_type_t_WIFI_PS_NONE);
         let cfg = esp_idf_sys::esp_pm_config_esp32s3_t {
             max_freq_mhz: 240,
             min_freq_mhz: 160,
@@ -53,6 +52,11 @@ pub fn wifi(
     let ip_info = wifi.wifi().sta_netif().get_ip_info()?;
 
     info!("Wifi DHCP info: {:?}", ip_info);
+
+    unsafe {
+        let ret = esp_idf_sys::esp_wifi_set_ps(esp_idf_sys::wifi_ps_type_t_WIFI_PS_NONE);
+        info!("Set WiFi power management configuration: {}", ret);
+    }
 
     Ok(Box::new(esp_wifi))
 }
