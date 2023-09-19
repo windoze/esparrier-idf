@@ -121,3 +121,11 @@ impl StatusDisplay for NeoPixelStatus {
         // do nothing
     }
 }
+
+lazy_static :: lazy_static! {
+    static ref STATUS_DISPLAY: NeoPixelStatus = NeoPixelStatus::new();
+}
+
+pub fn set_status(status: Status) {
+    STATUS_DISPLAY.set_status(status);
+}

@@ -1,47 +1,68 @@
-use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use std::sync::Mutex;
 
 use super::Status;
+use display_interface_spi::SPIInterfaceNoCS;
+use embedded_graphics::{
+    pixelcolor::Rgb565,
+    prelude::{DrawTarget, RgbColor},
+};
+use esp_idf_hal::{gpio, spi};
+use lazy_static::lazy_static;
+
+pub type DisplayType = mipidsi::Display<
+    SPIInterfaceNoCS<
+        spi::SpiDeviceDriver<'static, spi::SpiDriver<'static>>,
+        gpio::PinDriver<'static, gpio::Gpio33, gpio::Output>,
+    >,
+    mipidsi::models::ST7789,
+    gpio::PinDriver<'static, gpio::Gpio34, gpio::Output>,
+>;
 
 pub struct LCDStatusDisplay {
-    wifi_connected: AtomicBool,
-    barrier_connected: AtomicBool,
-    activated: AtomicBool,
-    clipboard_size: AtomicUsize,
+    display: DisplayType,
 }
 
 impl LCDStatusDisplay {
-    fn new() -> Self {
-        Self {
-            wifi_connected: AtomicBool::new(false),
-            barrier_connected: AtomicBool::new(false),
-            activated: AtomicBool::new(false),
-            clipboard_size: AtomicUsize::new(0),
-        }
+    fn new(display: DisplayType) -> Self {
+        Self { display }
     }
 
     pub fn set_status(&mut self, status: Status) {
         match status {
-            Status::Start => {}
-            Status::WifiConnected => {
-                self.wifi_connected.store(true, Ordering::Relaxed);
+            Status::None => {
+                self.display.clear(Rgb565::BLACK).unwrap();
             }
-            Status::BarrierConnected => {
-                self.wifi_connected.store(true, Ordering::Relaxed);
-                self.barrier_connected.store(true, Ordering::Relaxed);
+            Status::Start => {
+                self.display.clear(Rgb565::RED).unwrap();
+            }
+            Status::WifiConnected => {
+                self.display.clear(Rgb565::BLUE).unwrap();
             }
             Status::Activated => {
-                self.wifi_connected.store(true, Ordering::Relaxed);
-                self.barrier_connected.store(true, Ordering::Relaxed);
-                self.activated.store(true, Ordering::Relaxed);
+                self.display.clear(Rgb565::GREEN).unwrap();
             }
             Status::Deactivated => {
-                self.wifi_connected.store(true, Ordering::Relaxed);
-                self.barrier_connected.store(true, Ordering::Relaxed);
-                self.activated.store(false, Ordering::Relaxed);
+                self.display.clear(Rgb565::YELLOW).unwrap();
             }
-            Status::ClipboardSize(size) => {
-                self.clipboard_size.store(size, Ordering::Relaxed);
+            Status::ClipboardSize(_) => {
+                // self.clipboard_size.store(size, Ordering::Relaxed);
             }
         }
+    }
+}
+
+lazy_static! {
+    static ref DISPLAY: Mutex<Option<LCDStatusDisplay>> = Mutex::new(None);
+}
+
+pub fn init_display(display: DisplayType) {
+    let mut display = LCDStatusDisplay::new(display);
+    display.set_status(Status::Start);
+    *DISPLAY.lock().unwrap() = Some(display);
+}
+
+pub fn set_status(status: Status) {
+    if let Some(display) = DISPLAY.lock().unwrap().as_mut() {
+        display.set_status(status)
     }
 }

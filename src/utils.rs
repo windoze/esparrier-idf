@@ -1,15 +1,12 @@
-use std::time::Duration;
-
-use anyhow::{bail, Result};
+use anyhow::Result;
 use esp_idf_hal::peripheral;
 use esp_idf_svc::{
     eventloop::EspSystemEventLoop,
-    netif::{EspNetif, EspNetifWait},
-    wifi::{EspWifi, WifiWait},
+    wifi::{EspWifi, BlockingWifi},
 };
 use log::info;
 
-use embedded_svc::wifi::{AccessPointConfiguration, ClientConfiguration, Configuration, Wifi};
+use embedded_svc::wifi::{ClientConfiguration, Configuration};
 
 use crate::settings::{get_wifi_ssid, get_wifi_password};
 
@@ -17,74 +14,56 @@ pub fn wifi(
     modem: impl peripheral::Peripheral<P = esp_idf_hal::modem::Modem> + 'static,
     sysloop: EspSystemEventLoop,
 ) -> Result<Box<EspWifi<'static>>> {
-    use std::net::Ipv4Addr;
+    let mut esp_wifi = EspWifi::new(modem, sysloop.clone(), None)?;
 
-    let mut wifi = Box::new(EspWifi::new(modem, sysloop.clone(), None)?);
+    let mut wifi = BlockingWifi::wrap(&mut esp_wifi, sysloop)?;
 
-    unsafe { esp_idf_sys::esp_wifi_set_ps(0) };
+    wifi.set_configuration(&Configuration::Client(ClientConfiguration::default()))?;
 
-    info!("Wifi created, about to scan");
+    info!("Starting wifi...");
+
+    wifi.start()?;
+
+    info!("Scanning...");
 
     let ap_infos = wifi.scan()?;
 
-    let ssid = get_wifi_ssid();
-    let ours = ap_infos.into_iter().find(|a| a.ssid == ssid);
+    let ours = ap_infos.into_iter().find(|a| a.ssid == get_wifi_ssid());
 
     let channel = if let Some(ours) = ours {
         info!(
             "Found configured access point {} on channel {}",
-            ssid, ours.channel
+            get_wifi_ssid(), ours.channel
         );
         Some(ours.channel)
     } else {
         info!(
             "Configured access point {} not found during scanning, will go with unknown channel",
-            ssid
+            get_wifi_ssid()
         );
         None
     };
 
-    wifi.set_configuration(&Configuration::Mixed(
+    wifi.set_configuration(&Configuration::Client(
         ClientConfiguration {
-            ssid: ssid.into(),
+            ssid: get_wifi_ssid().into(),
             password: get_wifi_password().into(),
             channel,
             ..Default::default()
-        },
-        AccessPointConfiguration {
-            ssid: "aptest".into(),
-            channel: channel.unwrap_or(1),
-            ..Default::default()
-        },
+        }
     ))?;
-
-    wifi.start()?;
-
-    info!("Starting wifi...");
-
-    if !WifiWait::new(&sysloop)?
-        .wait_with_timeout(Duration::from_secs(20), || wifi.is_started().unwrap())
-    {
-        bail!("Wifi did not start");
-    }
 
     info!("Connecting wifi...");
 
     wifi.connect()?;
 
-    if !EspNetifWait::new::<EspNetif>(wifi.sta_netif(), &sysloop)?.wait_with_timeout(
-        Duration::from_secs(20),
-        || {
-            wifi.is_connected().unwrap()
-                && wifi.sta_netif().get_ip_info().unwrap().ip != Ipv4Addr::new(0, 0, 0, 0)
-        },
-    ) {
-        bail!("Wifi did not connect or did not receive a DHCP lease");
-    }
+    info!("Waiting for DHCP lease...");
 
-    let ip_info = wifi.sta_netif().get_ip_info()?;
+    wifi.wait_netif_up()?;
+
+    let ip_info = wifi.wifi().sta_netif().get_ip_info()?;
 
     info!("Wifi DHCP info: {:?}", ip_info);
 
-    Ok(wifi)
+    Ok(Box::new(esp_wifi))
 }

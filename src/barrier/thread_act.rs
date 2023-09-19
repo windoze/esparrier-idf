@@ -112,7 +112,7 @@ impl<T: Actuator + Send + 'static> ThreadedActuator<T> {
             cursor_x: 0,
             cursor_y: 0,
             tx,
-            _t: PhantomData::default(),
+            _t: PhantomData,
         }
     }
 
