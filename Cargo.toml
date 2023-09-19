@@ -13,7 +13,7 @@ debug = true # Symbols are nice and they don't increase the size on Flash
 opt-level = "z"
 
 [features]
-default = [ "m5atoms3" ]
+default = [ "m5atoms3lite" ]
 pio = ["esp-idf-sys/pio"]
 m5atoms3lite = ["smart-leds", "ws2812-esp32-rmt-driver"]
 m5atoms3 = ["embedded-graphics", "mipidsi", "display-interface-spi"]
