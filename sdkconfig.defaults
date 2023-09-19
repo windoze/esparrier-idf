@@ -2,6 +2,7 @@
 CONFIG_ESP_MAIN_TASK_STACK_SIZE=7000
 CONFIG_ESP_SYSTEM_EVENT_TASK_STACK_SIZE=16384
 CONFIG_LOG_MAXIMUM_LEVEL=2
+CONFIG_PM_ENABLE=y
 
 # Use this to set FreeRTOS kernel tick frequency to 1000 Hz (100 Hz by default).
 # This allows to use 1 ms granuality for thread sleeps (10 ms by default).

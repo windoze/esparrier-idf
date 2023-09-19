@@ -4,6 +4,7 @@ use esp_idf_svc::{
     eventloop::EspSystemEventLoop,
     wifi::{BlockingWifi, EspWifi},
 };
+use esp_idf_sys::esp_pm_configure;
 use log::info;
 
 use embedded_svc::wifi::{ClientConfiguration, Configuration};
@@ -14,7 +15,16 @@ pub fn wifi(
     modem: impl peripheral::Peripheral<P = esp_idf_hal::modem::Modem> + 'static,
     sysloop: EspSystemEventLoop,
 ) -> Result<Box<EspWifi<'static>>> {
-    unsafe { esp_idf_sys::esp_wifi_set_ps(esp_idf_sys::wifi_ps_type_t_WIFI_PS_NONE) };
+    unsafe {
+        esp_idf_sys::esp_wifi_set_ps(esp_idf_sys::wifi_ps_type_t_WIFI_PS_NONE);
+        let cfg = esp_idf_sys::esp_pm_config_esp32s3_t {
+            max_freq_mhz: 240,
+            min_freq_mhz: 160,
+            light_sleep_enable: false,
+        };
+        let ret = esp_pm_configure(&cfg as *const _ as *const std::ffi::c_void);
+        info!("Set power management configuration: {}", ret);
+    }
     let mut esp_wifi = EspWifi::new(modem, sysloop.clone(), None)?;
 
     let mut wifi = BlockingWifi::wrap(&mut esp_wifi, sysloop)?;
@@ -25,31 +35,10 @@ pub fn wifi(
 
     wifi.start()?;
 
-    info!("Scanning...");
-
-    let ap_infos = wifi.scan()?;
-
-    let ours = ap_infos.into_iter().find(|a| a.ssid == get_wifi_ssid());
-
-    let channel = if let Some(ours) = ours {
-        info!(
-            "Found configured access point {} on channel {}",
-            get_wifi_ssid(),
-            ours.channel
-        );
-        Some(ours.channel)
-    } else {
-        info!(
-            "Configured access point {} not found during scanning, will go with unknown channel",
-            get_wifi_ssid()
-        );
-        None
-    };
-
     wifi.set_configuration(&Configuration::Client(ClientConfiguration {
         ssid: get_wifi_ssid().into(),
         password: get_wifi_password().into(),
-        channel,
+        channel: None,
         ..Default::default()
     }))?;
 
