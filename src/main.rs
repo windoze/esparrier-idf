@@ -57,30 +57,32 @@ fn main() -> Result<()> {
 
     #[cfg(feature = "m5atoms3")]
     {
+        use esp_idf_hal::spi::config::DriverConfig;
         let display = {
             // backlight
             esp_idf_hal::gpio::PinDriver::output(peripherals.pins.gpio16)
                 .unwrap()
                 .set_high()
                 .unwrap();
-    
+
             let di = display_interface_spi::SPIInterfaceNoCS::new(
                 esp_idf_hal::spi::SpiDeviceDriver::new_single(
                     peripherals.spi2,
                     peripherals.pins.gpio17,
                     peripherals.pins.gpio21,
                     Option::<esp_idf_hal::gpio::Gpio21>::None,
-                    esp_idf_hal::spi::Dma::Disabled,
                     Some(peripherals.pins.gpio15),
+                    &DriverConfig::default(),
                     &esp_idf_hal::spi::SpiConfig::new()
                         .baudrate(esp_idf_hal::units::FromValueType::MHz(27u32).into()),
                 )
                 .unwrap(),
                 esp_idf_hal::gpio::PinDriver::output(peripherals.pins.gpio33).unwrap(),
             );
-    
+
             mipidsi::Builder::st7789(di)
                 .with_color_order(mipidsi::ColorOrder::Bgr)
+                .with_invert_colors(mipidsi::ColorInversion::Inverted)
                 .with_display_size(128, 128)
                 .with_framebuffer_size(128, 128)
                 .with_window_offset_handler(|_| (2, 1))
