@@ -1,5 +1,6 @@
 use std::{io::Write, net::TcpStream, time::Duration};
 
+use esp_idf_hal::task::watchdog::WatchdogSubscription;
 use log::{debug, info};
 
 use crate::barrier::packet_stream::ReadTimeout;
@@ -14,11 +15,12 @@ pub enum ClipboardStage {
     Mark3,
 }
 
-pub fn start<A: Actuator>(
+pub fn start<'d, A: Actuator>(
     addr: &str,
     port: u16,
     device_name: &str,
     actor: &mut A,
+    wd: &mut WatchdogSubscription<'d>,
 ) -> Result<(), ConnectionError> {
     let screen_size: (u16, u16) = actor.get_screen_size();
 
@@ -66,6 +68,7 @@ pub fn start<A: Actuator>(
                     actor.disconnected();
                     e
                 })?;
+                wd.feed().expect("Failed to feed watchdog");
             }
             Packet::MouseMoveAbs { x, y } => {
                 let abs_x = ((x as f32) * (0x7fff as f32 / (screen_size.0 as f32))).ceil() as u16;

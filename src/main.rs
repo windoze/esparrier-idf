@@ -1,8 +1,9 @@
-use std::sync::Mutex;
+use std::{sync::Mutex, time::Duration};
 
 use anyhow::Result;
 use const_env::from_env;
-use esp_idf_hal::{gpio::AnyInputPin, prelude::Peripherals};
+use enumset::enum_set;
+use esp_idf_hal::{gpio::AnyInputPin, prelude::Peripherals, task::watchdog::TWDTConfig, cpu::Core};
 use esp_idf_svc::eventloop::EspSystemEventLoop;
 use esp_idf_sys::{self as _, nvs_flash_init};
 use lazy_static::lazy_static;
@@ -55,6 +56,18 @@ fn main() -> Result<()> {
 
     let peripherals = Peripherals::take().unwrap();
 
+    let config = TWDTConfig {
+        duration: Duration::from_secs(15),  // TODO:
+        panic_on_trigger: true,
+        subscribed_idle_tasks: enum_set!(Core::Core0)
+    };
+    let mut driver = esp_idf_hal::task::watchdog::TWDTDriver::new(
+        peripherals.twdt,
+        &config,
+    )?;
+    
+    let mut watchdog = driver.watch_current_task()?;
+    
     #[cfg(feature = "m5atoms3")]
     {
         use esp_idf_hal::spi::config::DriverConfig;
@@ -122,6 +135,7 @@ fn main() -> Result<()> {
             get_barrier_port(),
             get_screen_name(),
             &mut actor,
+            &mut watchdog,
         ) {
             Ok(_) => {
                 error!("Connection closed");
