@@ -39,7 +39,7 @@ Esparrier is a [Barrier](https://github.com/debauchee/barrier) client for ESP32S
 
 ## Clipboard
 
-The program now has limited support of the clipboard.
+The program now has limited support of the clipboard when the feature `paste` is enabled.
 
 First you need to activate other screen and copy something into the clipboard, then switch to the screen connected to the board.
 
@@ -75,6 +75,12 @@ First, you need to install some tools:
     ```
 4. Exit the download mode and reset the board, the new configurations should be applied.
 
+## Build for other ESP32S3 boards
+
+1. You need to disable the default feature, e.g. `cargo build --release --no-default-features`, this disables both LED and the paste button, but other functions remain.
+2. If there is a button on the board, you can enable the feature `paste` to support clipboard, and you need to set the environment `PASTE_BUTTON_PIN` to the correct pin number, on M5AtomS3/Lite, it's 41.
+3. If there is a RGB LED (WS2812B) on the board, you can use `m5atoms3lite` feature to enable the LED, and you need to set the environment `STATUS_LED_PIN` to the correct pin number, on M5AtomS3/Lite, it's 35, on M5StampS3, it's 21.
+
 ## NOTES:
 
 **WARNING**: This program is only for testing purpose. It is not a complete implementation of Barrier client. There could be a lot of bugs and missing features. It has no concept of security, neither on the WiFi nor on the USB. It is not recommended to use it in anywhere but a private environment.
@@ -90,11 +96,13 @@ First, you need to install some tools:
 * The USB VID/PID are randomly picked and not registered, so you may need to change the code to use your own VID/PID.
 * The USB remote wakeup may not work because the standard forbids a suspended device consume too much current but this program needs much more than the standard says to keep Wi-Fi connected. I still haven't figured out how to keep the program running with the current <2.5mA. Of course you can choose a board with external power source such as a battery, but it seems to be an overkill.
 * The program can accept inputs only **after** the board successfully connects to the WiFi and Barrier server, it may be too late to use the board as a USB keyboard/mouse in BIOS/EFI, some main board that has always-on USB ports may work, but I haven't tested it, or you can use a USB hub that can supply power even if the host is off.
+* By default the `watchdog` feature is enabled, you can disable it by disabled the `watchdog` feature. The watchdog will reset the board if it doesn't receive heartbeat from the Barrier server, or the program itself runs out of control and doesn't process the heartbeat, for the number of seconds defined in `WATCHDOG_TIMEOUT` environment variable. The default watchdog timeout is 15 seconds, as the default Barrier heartbeat interval is 5 seconds, you may need to change the watchdog timeout if the Barrier server has a long heartbeat interval.
 
 ## TODO:
 
 - [x] Support media keys
 - [x] Re-configure without rebuilding
+- [x] Support other ESP32S3 boards
 - [ ] Support Mac special keys
 - [ ] Support TLS
 - [ ] NVS encryption
