@@ -150,7 +150,10 @@ void usb_util_abs_mouse_report(uint8_t buttons, uint16_t x, uint16_t y, int8_t w
         ESP_LOGI(TAG, "Buttons: %i, X: %i, Y: %i, Wheel: %i, Pan: %i", buttons, x, y, wheel, pan);
         return;
     }
+    while(!tud_hid_n_ready(0));
     tud_hid_n_report(0, HID_PROTOCOL_MOUSE, &report, sizeof(report));
+    while(!tud_hid_n_ready(0));
+    tud_hid_n_report(0, 0, NULL, 0);
 }
 
 void usb_util_keyboard_report(uint8_t modifier, uint8_t *key_report)
@@ -160,9 +163,10 @@ void usb_util_keyboard_report(uint8_t modifier, uint8_t *key_report)
         ESP_LOGI(TAG, "Modifier: %i, Button [%i, %i, %i, %i, %i, %i]", modifier, key_report[0], key_report[1], key_report[2], key_report[3], key_report[4], key_report[5]);
         return;
     }
+    while(!tud_hid_n_ready(0));
     tud_hid_keyboard_report(HID_PROTOCOL_KEYBOARD, modifier, key_report);
-    // Delay for 2ms to avoid overflow
-    vTaskDelay(pdMS_TO_TICKS(2));
+    while(!tud_hid_n_ready(0));
+    tud_hid_n_report(0, 0, NULL, 0);
 }
 
 void usb_util_consumer_report(uint16_t code)
@@ -173,7 +177,10 @@ void usb_util_consumer_report(uint16_t code)
         return;
     }
     // 
+    while(!tud_hid_n_ready(0));
     tud_hid_n_report(0, RID_CONSUMER_CONTROL, &code, 2);
+    while(!tud_hid_n_ready(0));
+    tud_hid_n_report(0, 0, NULL, 0);
 }
 
 void usb_util_init(void)

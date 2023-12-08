@@ -2,7 +2,7 @@ use std::sync::Mutex;
 
 use anyhow::Result;
 use const_env::from_env;
-use esp_idf_hal::{gpio::AnyInputPin, prelude::Peripherals};
+use esp_idf_hal::prelude::Peripherals;
 use esp_idf_svc::eventloop::EspSystemEventLoop;
 use esp_idf_sys::{self as _, nvs_flash_init};
 use lazy_static::lazy_static;
@@ -10,19 +10,16 @@ use log::{error, info};
 
 mod barrier;
 mod keycodes;
-mod paste_button;
 mod reports;
 mod settings;
 mod status;
 mod usb_actor;
 mod utils;
 
-use paste_button::start_paste_button_task;
 use settings::*;
 use utils::*;
 
 use crate::{
-    barrier::ThreadedActuator,
     status::{set_status, Status},
     usb_actor::UsbHidActuator,
 };
@@ -30,7 +27,26 @@ use crate::{
 #[from_env("DEBUG_INIT_USB")]
 pub const INIT_USB: bool = true;
 
+#[cfg(feature = "watchdog")]
+use std::time::Duration;
+#[cfg(feature = "watchdog")]
+use enumset::enum_set;
+#[cfg(feature = "watchdog")]
+use esp_idf_hal::{task::watchdog::TWDTConfig, cpu::Core};
+#[cfg(feature = "watchdog")]
+#[from_env("WATCHDOG_TIMEOUT")]
+const WATCHDOG_TIMEOUT: u64 = 15;
+
+#[cfg(feature = "paste")]
+mod paste_button;
+#[cfg(feature = "paste")]
+use esp_idf_hal::gpio::AnyInputPin;
+#[cfg(feature = "paste")]
+use paste_button::start_paste_button_task;
+#[cfg(feature = "paste")]
+use crate::barrier::ThreadedActuator;
 // M5Atom S3 and Lite has a button on GPIO 41
+#[cfg(feature = "paste")]
 #[from_env("PASTE_BUTTON_PIN")]
 const PASTE_BUTTON_PIN: i32 = 41;
 
@@ -55,6 +71,18 @@ fn main() -> Result<()> {
 
     let peripherals = Peripherals::take().unwrap();
 
+    #[cfg(feature = "watchdog")]
+    let mut driver = esp_idf_hal::task::watchdog::TWDTDriver::new(
+        peripherals.twdt,
+        &TWDTConfig {
+            duration: Duration::from_secs(WATCHDOG_TIMEOUT),  // TODO:
+            panic_on_trigger: true,
+            subscribed_idle_tasks: enum_set!(Core::Core0)
+        },
+    )?;
+    #[cfg(feature = "watchdog")]
+    let mut watchdog = driver.watch_current_task()?;
+    
     #[cfg(feature = "m5atoms3")]
     {
         use esp_idf_hal::spi::config::DriverConfig;
@@ -107,13 +135,22 @@ fn main() -> Result<()> {
 
     let screen_width = get_screen_width();
     let screen_height = get_screen_height();
-    let actor = UsbHidActuator::new(screen_width, screen_height);
-    let mut actor = ThreadedActuator::new(screen_width, screen_height, actor);
 
-    start_paste_button_task(
-        unsafe { AnyInputPin::new(PASTE_BUTTON_PIN) },
-        actor.get_sender(),
-    );
+    #[cfg(feature = "paste")]
+    let mut actor = {
+        let actor = UsbHidActuator::new(screen_width, screen_height);
+        let actor = ThreadedActuator::new(screen_width, screen_height, actor);
+    
+        start_paste_button_task(
+            unsafe { AnyInputPin::new(PASTE_BUTTON_PIN) },
+            actor.get_sender(),
+        );
+        actor
+    };
+
+    // Do not use paste button
+    #[cfg(not(feature = "paste"))]
+    let mut actor = UsbHidActuator::new(screen_width, screen_height);
 
     info!("Connecting to barrier...");
     for _ in 0..10 {
@@ -122,6 +159,8 @@ fn main() -> Result<()> {
             get_barrier_port(),
             get_screen_name(),
             &mut actor,
+            #[cfg(feature = "watchdog")]
+            &mut watchdog,
         ) {
             Ok(_) => {
                 error!("Connection closed");

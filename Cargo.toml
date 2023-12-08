@@ -13,10 +13,11 @@ debug = true # Symbols are nice and they don't increase the size on Flash
 opt-level = "z"
 
 [features]
-default = [ "m5atoms3lite" ]
-pio = ["esp-idf-sys/pio"]
-m5atoms3lite = ["smart-leds", "ws2812-esp32-rmt-driver"]
-m5atoms3 = ["embedded-graphics", "mipidsi", "display-interface-spi"]
+default = [ "m5atoms3lite", "watchdog" ]
+m5atoms3lite = ["smart-leds", "ws2812-esp32-rmt-driver", "paste"]
+m5atoms3 = ["embedded-graphics", "mipidsi", "display-interface-spi", "paste"]
+paste = []
+watchdog = ["enumset"]
 
 [dependencies]
 const_env = "0.1"
@@ -24,10 +25,11 @@ anyhow = {version = "1", features = ["backtrace"]}
 thiserror = "1.0"
 log = "0.4"
 lazy_static = "1.4"
+enumset = { version = "1", optional = true }
 esp-idf-sys = { version = "0.33", features = ["binstart"] }
-esp-idf-svc = { version = "0.46", features = [] }
-esp-idf-hal = "0.41"
-embedded-svc = { version = "0.25", features = [] }
+esp-idf-svc = { version = "0.47", features = [] }
+esp-idf-hal = "0.42"
+embedded-svc = { version = "0.26", features = [] }
 embedded-hal = "0.2"
 
 smart-leds = { version = "0.3", optional = true }
