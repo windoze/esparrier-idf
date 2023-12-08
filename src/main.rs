@@ -1,9 +1,8 @@
-use std::{sync::Mutex, time::Duration};
+use std::sync::Mutex;
 
 use anyhow::Result;
 use const_env::from_env;
-use enumset::enum_set;
-use esp_idf_hal::{prelude::Peripherals, task::watchdog::TWDTConfig, cpu::Core};
+use esp_idf_hal::prelude::Peripherals;
 use esp_idf_svc::eventloop::EspSystemEventLoop;
 use esp_idf_sys::{self as _, nvs_flash_init};
 use lazy_static::lazy_static;
@@ -27,6 +26,16 @@ use crate::{
 
 #[from_env("DEBUG_INIT_USB")]
 pub const INIT_USB: bool = true;
+
+#[cfg(feature = "watchdog")]
+use std::time::Duration;
+#[cfg(feature = "watchdog")]
+use enumset::enum_set;
+#[cfg(feature = "watchdog")]
+use esp_idf_hal::{task::watchdog::TWDTConfig, cpu::Core};
+#[cfg(feature = "watchdog")]
+#[from_env("WATCHDOG_TIMEOUT")]
+const WATCHDOG_TIMEOUT: u64 = 15;
 
 #[cfg(feature = "paste")]
 mod paste_button;
@@ -62,16 +71,16 @@ fn main() -> Result<()> {
 
     let peripherals = Peripherals::take().unwrap();
 
-    let config = TWDTConfig {
-        duration: Duration::from_secs(15),  // TODO:
-        panic_on_trigger: true,
-        subscribed_idle_tasks: enum_set!(Core::Core0)
-    };
+    #[cfg(feature = "watchdog")]
     let mut driver = esp_idf_hal::task::watchdog::TWDTDriver::new(
         peripherals.twdt,
-        &config,
+        &TWDTConfig {
+            duration: Duration::from_secs(WATCHDOG_TIMEOUT),  // TODO:
+            panic_on_trigger: true,
+            subscribed_idle_tasks: enum_set!(Core::Core0)
+        },
     )?;
-    
+    #[cfg(feature = "watchdog")]
     let mut watchdog = driver.watch_current_task()?;
     
     #[cfg(feature = "m5atoms3")]
@@ -150,6 +159,7 @@ fn main() -> Result<()> {
             get_barrier_port(),
             get_screen_name(),
             &mut actor,
+            #[cfg(feature = "watchdog")]
             &mut watchdog,
         ) {
             Ok(_) => {

@@ -1,6 +1,8 @@
 use std::{io::Write, net::TcpStream, time::Duration};
 
+#[cfg(feature = "watchdog")]
 use esp_idf_hal::task::watchdog::WatchdogSubscription;
+
 use log::{debug, info};
 
 use crate::barrier::packet_stream::ReadTimeout;
@@ -20,6 +22,7 @@ pub fn start<A: Actuator>(
     port: u16,
     device_name: &str,
     actor: &mut A,
+    #[cfg(feature = "watchdog")]
     wd: &mut WatchdogSubscription<'_>,
 ) -> Result<(), ConnectionError> {
     let screen_size: (u16, u16) = actor.get_screen_size();
@@ -68,6 +71,7 @@ pub fn start<A: Actuator>(
                     actor.disconnected();
                     e
                 })?;
+                #[cfg(feature = "watchdog")]
                 wd.feed().expect("Failed to feed watchdog");
             }
             Packet::MouseMoveAbs { x, y } => {
