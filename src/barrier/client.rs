@@ -15,12 +15,12 @@ pub enum ClipboardStage {
     Mark3,
 }
 
-pub fn start<'d, A: Actuator>(
+pub fn start<A: Actuator>(
     addr: &str,
     port: u16,
     device_name: &str,
     actor: &mut A,
-    wd: &mut WatchdogSubscription<'d>,
+    wd: &mut WatchdogSubscription<'_>,
 ) -> Result<(), ConnectionError> {
     let screen_size: (u16, u16) = actor.get_screen_size();
 

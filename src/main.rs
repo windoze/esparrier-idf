@@ -3,7 +3,7 @@ use std::{sync::Mutex, time::Duration};
 use anyhow::Result;
 use const_env::from_env;
 use enumset::enum_set;
-use esp_idf_hal::{gpio::AnyInputPin, prelude::Peripherals, task::watchdog::TWDTConfig, cpu::Core};
+use esp_idf_hal::{prelude::Peripherals, task::watchdog::TWDTConfig, cpu::Core};
 use esp_idf_svc::eventloop::EspSystemEventLoop;
 use esp_idf_sys::{self as _, nvs_flash_init};
 use lazy_static::lazy_static;
@@ -11,19 +11,16 @@ use log::{error, info};
 
 mod barrier;
 mod keycodes;
-mod paste_button;
 mod reports;
 mod settings;
 mod status;
 mod usb_actor;
 mod utils;
 
-use paste_button::start_paste_button_task;
 use settings::*;
 use utils::*;
 
 use crate::{
-    barrier::ThreadedActuator,
     status::{set_status, Status},
     usb_actor::UsbHidActuator,
 };
@@ -31,7 +28,16 @@ use crate::{
 #[from_env("DEBUG_INIT_USB")]
 pub const INIT_USB: bool = true;
 
+#[cfg(feature = "paste")]
+mod paste_button;
+#[cfg(feature = "paste")]
+use esp_idf_hal::gpio::AnyInputPin;
+#[cfg(feature = "paste")]
+use paste_button::start_paste_button_task;
+#[cfg(feature = "paste")]
+use crate::barrier::ThreadedActuator;
 // M5Atom S3 and Lite has a button on GPIO 41
+#[cfg(feature = "paste")]
 #[from_env("PASTE_BUTTON_PIN")]
 const PASTE_BUTTON_PIN: i32 = 41;
 
@@ -120,13 +126,22 @@ fn main() -> Result<()> {
 
     let screen_width = get_screen_width();
     let screen_height = get_screen_height();
-    let actor = UsbHidActuator::new(screen_width, screen_height);
-    let mut actor = ThreadedActuator::new(screen_width, screen_height, actor);
 
-    start_paste_button_task(
-        unsafe { AnyInputPin::new(PASTE_BUTTON_PIN) },
-        actor.get_sender(),
-    );
+    #[cfg(feature = "paste")]
+    let mut actor = {
+        let actor = UsbHidActuator::new(screen_width, screen_height);
+        let actor = ThreadedActuator::new(screen_width, screen_height, actor);
+    
+        start_paste_button_task(
+            unsafe { AnyInputPin::new(PASTE_BUTTON_PIN) },
+            actor.get_sender(),
+        );
+        actor
+    };
+
+    // Do not use paste button
+    #[cfg(not(feature = "paste"))]
+    let mut actor = UsbHidActuator::new(screen_width, screen_height);
 
     info!("Connecting to barrier...");
     for _ in 0..10 {

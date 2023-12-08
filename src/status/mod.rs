@@ -25,3 +25,9 @@ pub mod lcd_status;
 
 #[cfg(feature = "m5atoms3")]
 pub use lcd_status::set_status;
+
+// For boards without status display
+#[cfg(not(any(feature = "m5atoms3", feature = "m5atoms3lite")))]
+pub mod dummy_status;
+#[cfg(not(any(feature = "m5atoms3", feature = "m5atoms3lite")))]
+pub use dummy_status::set_status;

@@ -17,6 +17,7 @@ default = [ "m5atoms3lite" ]
 pio = ["esp-idf-sys/pio"]
 m5atoms3lite = ["smart-leds", "ws2812-esp32-rmt-driver"]
 m5atoms3 = ["embedded-graphics", "mipidsi", "display-interface-spi"]
+paste = []
 
 [dependencies]
 const_env = "0.1"
