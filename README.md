@@ -1,7 +1,9 @@
-Esparrier
+Esparrier-IDF
 =========
 
-Esparrier is a [Barrier](https://github.com/debauchee/barrier) client for ESP32S3.
+Esparrier-IDF is a [Barrier](https://github.com/debauchee/barrier) client for ESP32S3.
+
+This project is **abandoned**, the alternative can be found at [esparrier](https://github.com/windoze/esparrier).
 
 ## How to build
 
